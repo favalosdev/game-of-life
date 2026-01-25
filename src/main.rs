@@ -16,6 +16,7 @@ mod renderer;
 mod input;
 mod grid;
 mod camera;
+mod quad_tree;
 
 use grid::Grid;
 use camera::Camera;

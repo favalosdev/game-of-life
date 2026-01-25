@@ -1,4 +1,4 @@
-use std::collections::{HashMap, LinkedList};
+use std::collections::{HashMap, LinkedList, HashSet};
 use literal::list;
 
 type NodeId = usize;
@@ -22,14 +22,13 @@ impl Node {
     }
 }
 
-struct Arena {
+pub struct Arena {
     nodes: Vec<Node>,
     root: NodeId,
-    evolve_cache: HashMap<NodeId, NodeId>
 }
 
 impl Arena {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut nodes = vec![];
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -40,7 +39,7 @@ impl Arena {
         nodes.push(dead);
         nodes.push(alive);
 
-        Arena { nodes, root: ALIVE, evolve_cache: HashMap::new() }
+        Arena { nodes, root: ALIVE }
     }
 
     fn new_node(&mut self, node: Node) -> NodeId {
@@ -85,7 +84,7 @@ impl Arena {
         let mut outer = 0;
 
         for id in vec![a, b, c, d, f, g, h, i] {
-            outer += self.nodes[id].n;
+            outer += &self.nodes[id].n;
         }
 
         if self.nodes[e].n == 1 && outer == 2 || outer == 3 {
@@ -111,10 +110,6 @@ impl Arena {
     }
 
     fn next_gen(&mut self, m: NodeId) -> NodeId {
-        if let Some(next) = self.evolve_cache.get(&m) {
-            return *next;
-        } 
-
         let next = if self.nodes[m].n == 0 {
             // empty
             self.nodes[m].a
@@ -163,19 +158,97 @@ impl Arena {
             let s4 = self.join(self.nodes[c5].d, self.nodes[c6].c, self.nodes[c8].b, self.nodes[c9].a);
 
             let s = self.join(s1, s2, s3, s4);
-            s 
+            s
         };
-
-        self.evolve_cache.insert(m, next);
         next
     }
 
-    // Convert QuadTree to (x,y) world coordinate system.
+    // Convert QuadTree to (x,y)
     fn to_world(&self) -> LinkedList<(isize, isize)> {
         list![]
     }
 
-    // Convert world coordinates to QuadTree. Doesn't return something.
-    fn from_world(&self, cells: LinkedList<(isize, isize)>) {
+    // Convert (x,y) to QuadTree
+    pub fn from_world(
+        &mut self,
+        mut cells: LinkedList<(isize, isize)>,
+        start_x: isize,
+        start_y: isize,
+        span: isize
+    ) -> NodeId {
+        if span == 1 {
+            let lookup = cells.iter().collect::<HashSet<_>>();
+
+            let a = (start_x, start_y + 1);
+            let b = (start_x + 1, start_y + 1);
+            let c = (start_x, start_y);
+            let d = (start_x + 1, start_y);
+
+            return self.join(
+                if lookup.contains(&a) { ALIVE } else { DEAD },
+                if lookup.contains(&b) { ALIVE } else { DEAD },
+                if lookup.contains(&c) { ALIVE } else { DEAD },
+                if lookup.contains(&d) { ALIVE } else { DEAD },
+            );
+        }
+
+        let mut ne_cells = list![];
+        let mut nw_cells = list![];
+        let mut se_cells = list![];
+        let mut sw_cells = list![];
+
+        for (x, y) in cells {
+            if start_x <= x && x < start_x + span {
+                if start_y <= y && y < start_y + span {
+                    ne_cells.push_back((x, y));
+                }
+
+                if start_y - span <= y && y < start_y { 
+                    se_cells.push_back((x, y));
+                }
+            }
+
+            if start_x - span <= x && x < start_x {
+                if start_y <= y && y < start_y + span {
+                    nw_cells.push_back((x, y));
+                }
+
+                if start_y - span <= y && y < start_y {
+                    sw_cells.push_back((x, y));
+                }
+            }
+        }
+
+        let new_span = span / 2;
+
+        let nw = self.from_world(
+            nw_cells,
+            start_x - new_span,
+            start_y + new_span,
+            new_span
+        );
+
+        let ne = self.from_world(
+            ne_cells,
+            start_x + new_span,
+            start_y + new_span,
+            new_span
+        );
+
+        let sw = self.from_world(
+            sw_cells,
+            start_x - new_span,
+            start_y - new_span,
+            new_span
+        );
+
+        let se = self.from_world(
+            se_cells,
+            start_x + new_span,
+            start_y - new_span,
+            span
+        );
+
+        return self.join(nw, ne, sw, se);
     }
 }
