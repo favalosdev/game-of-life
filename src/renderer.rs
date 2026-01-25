@@ -39,8 +39,11 @@ fn draw_squares(canvas: &mut Canvas<Window>, grid: &Grid, camera: &Camera, show_
         let to_fill = get_rect(camera, *x, *y);
         let _ = canvas.fill_rect(to_fill);
 
-        if to_fill.x >= 0 && to_fill.y >= 0 {
+        if to_fill.x >= 0 {
             min_x_s = cmp::min(min_x_s, to_fill.x);
+        }
+
+        if to_fill.y >= 0 {
             min_y_s = cmp::min(min_y_s, to_fill.y);
         }
     }
