@@ -171,7 +171,7 @@ impl Arena {
     // Convert (x,y) to QuadTree
     pub fn from_world(
         &mut self,
-        mut cells: LinkedList<(isize, isize)>,
+        cells: LinkedList<(isize, isize)>,
         start_x: isize,
         start_y: isize,
         span: isize
