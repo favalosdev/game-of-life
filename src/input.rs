@@ -16,7 +16,7 @@ pub struct InputState {
 impl InputState {
     pub fn new() -> Self {
         InputState {
-            is_paused: false,
+            is_paused: true,
             show_grid: false,
         }
     }

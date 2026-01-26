@@ -155,7 +155,11 @@ impl Arena {
         self.join(ad, bc, cb, da)
     }
 
-    pub fn next_gen(&mut self, m: NodeId) -> NodeId {
+    pub fn next_gen(&mut self) {
+        self.next_gen_aux(self.root);
+    }
+
+    fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
         let next = if self.nodes[m].n == 0 {
             // empty
             self.nodes[m].a
@@ -188,15 +192,15 @@ impl Arena {
             let j8 = self.join(cb, da, cd, dc);
             let j9 = self.join(da, db, dc, dd);
 
-            let c1 = self.next_gen(j1);
-            let c2 = self.next_gen(j2);
-            let c3 = self.next_gen(j3);
-            let c4 = self.next_gen(j4);
-            let c5 = self.next_gen(j5);
-            let c6 = self.next_gen(j6);
-            let c7 = self.next_gen(j7);
-            let c8 = self.next_gen(j8);
-            let c9 = self.next_gen(j9);
+            let c1 = self.next_gen_aux(j1);
+            let c2 = self.next_gen_aux(j2);
+            let c3 = self.next_gen_aux(j3);
+            let c4 = self.next_gen_aux(j4);
+            let c5 = self.next_gen_aux(j5);
+            let c6 = self.next_gen_aux(j6);
+            let c7 = self.next_gen_aux(j7);
+            let c8 = self.next_gen_aux(j8);
+            let c9 = self.next_gen_aux(j9);
             
             let s1 = self.join(self.nodes[c1].d, self.nodes[c2].c, self.nodes[c4].b, self.nodes[c5].a);
             let s2 = self.join(self.nodes[c2].d, self.nodes[c3].c, self.nodes[c5].b, self.nodes[c6].a);

@@ -75,7 +75,7 @@ fn main() {
             last_game_tick = now;
             draw_all(&mut canvas, arena.to_world(), &camera, &feedback, input_state.show_grid);
             if !input_state.is_paused {
-                arena.next_gen(arena.root);
+                arena.next_gen();
                 feedback.generation += 1;
             }
         }
