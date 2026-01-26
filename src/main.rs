@@ -67,13 +67,17 @@ fn main() {
     let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
     // Initial render
-    draw_all(&mut canvas, arena.to_world(), &camera, &feedback, input_state.show_grid);
+    draw_all(&mut canvas, arena.qt_to_world(), &camera, &feedback, input_state.show_grid);
 
     'running: loop {
         let now = Instant::now();
         if now.duration_since(last_game_tick) >= game_interval {
             last_game_tick = now;
-            draw_all(&mut canvas, arena.to_world(), &camera, &feedback, input_state.show_grid);
+
+            let cells = arena.qt_to_world();
+            println!("The cells are: {:?}", cells);
+
+            draw_all(&mut canvas, cells, &camera, &feedback, input_state.show_grid);
             if !input_state.is_paused {
                 arena.next_gen();
                 feedback.generation += 1;
