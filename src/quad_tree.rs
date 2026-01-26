@@ -35,7 +35,7 @@ impl Node {
 
 pub struct Arena {
     nodes: Vec<Node>,
-    pub root: NodeId,
+    root: NodeId,
     b: Vec<usize>,
     s: Vec<usize>
 }
