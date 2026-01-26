@@ -1,5 +1,8 @@
 use std::collections::{LinkedList, HashSet};
 use literal::list;
+use std::cmp;
+use ca_formats::rle::Rle;
+use ca_formats::Input;
 
 type NodeId = usize;
 
@@ -24,7 +27,9 @@ impl Node {
 
 pub struct Arena {
     nodes: Vec<Node>,
-    root: NodeId,
+    pub root: NodeId,
+    b: Vec<usize>,
+    s: Vec<usize>
 }
 
 impl Arena {
@@ -39,7 +44,48 @@ impl Arena {
         nodes.push(dead);
         nodes.push(alive);
 
-        Arena { nodes, root: ALIVE }
+        Arena { nodes, root: ALIVE, b: vec![], s: vec![] }
+    }
+
+    pub fn load_pattern<T : Input>(&mut self, pattern: Rle<T>) {
+        let header_data = pattern.header_data().unwrap();
+        let width = header_data.x;
+        let height = header_data.y;
+        let rule = &header_data.rule;
+
+        match rule {
+            Some(content) => {
+                let parts: Vec<&str> = content.split("/").collect();
+                self.b = parts[0][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
+                self.s = parts[1][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
+            },
+            _ => {}
+        }
+
+        let mut cells = pattern
+            .map(|cell| cell.unwrap())
+            .filter(|data | data.state == 1)
+            .map(|data| ((data.position.0 - (width as i64) / 2) as isize, -(data.position.1 - (height as i64) / 2) as isize))
+            .collect::<LinkedList<_>>();
+    
+        let mut arena = Arena::new();
+
+        let top = cells.pop_back();
+
+        match top {
+            Some((t_x, t_y)) => {
+                let mut max_span = cmp::max(t_x.abs(), t_y.abs());
+
+                for (x, y) in cells.iter() {
+                    max_span = cmp::max(x.abs(), y.abs())
+                }
+
+                cells.push_back((t_x, t_y));
+                arena.from_world(cells, 0, 0, 4 * (max_span / 4) + (4 as isize));
+                println!("Cells correctly loaded into the QuadTree!")
+            },
+            None => {}
+        }
     }
 
     fn new_node(&mut self, node: Node) -> NodeId {
@@ -87,7 +133,7 @@ impl Arena {
             outer += &self.nodes[id].n;
         }
 
-        if self.nodes[e].n == 1 && outer == 2 || outer == 3 {
+        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
             ALIVE
         } else {
             DEAD
@@ -109,7 +155,7 @@ impl Arena {
         self.join(ad, bc, cb, da)
     }
 
-    fn next_gen(&mut self, m: NodeId) -> NodeId {
+    pub fn next_gen(&mut self, m: NodeId) -> NodeId {
         let next = if self.nodes[m].n == 0 {
             // empty
             self.nodes[m].a
@@ -164,14 +210,53 @@ impl Arena {
     }
 
     // Convert QuadTree to (x,y)
-    fn to_world(
+    pub fn to_world(&self) -> LinkedList<(isize, isize)> {
+        self.to_world_aux(self.root, 0, 0)
+    }
+
+    fn to_world_aux(
         &self,
         root: NodeId,
-        offset: isize,
-        start_x: isize,
-        start_y: isize
+        offset_x: isize,
+        offset_y: isize
     ) -> LinkedList<(isize, isize)> {
-        list![]
+        let top = &self.nodes[root];
+        
+        if top.k == 1 {
+            let mut points = list![];
+
+            if top.a == ALIVE {
+                points.push_back((offset_x, offset_y+1));
+            }
+
+            if top.b == ALIVE {
+                points.push_back((offset_x+1, offset_y+1));
+            } 
+
+            if top.c == ALIVE {
+                points.push_back((offset_x, offset_y));
+            }
+
+            if top.d == ALIVE {
+                points.push_back((offset_x+1, offset_y));
+            }
+
+            points
+        } else {
+            let mut points = list![];
+            let span = ((2 as u32).pow(top.k as u32) / 2) as isize;
+
+            let mut nw = self.to_world_aux(top.a, -span/2, span/2);
+            let mut ne = self.to_world_aux(top.b, span/2, span/2);
+            let mut sw = self.to_world_aux(top.c, -span/2, -span/2);
+            let mut se = self.to_world_aux(top.c, span/2, -span/2);
+
+            points.append(&mut nw);
+            points.append(&mut ne);
+            points.append(&mut sw);
+            points.append(&mut se);
+            points
+        }
     }
 
     // Convert (x,y) to QuadTree

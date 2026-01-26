@@ -2,7 +2,6 @@ use std::collections::{HashSet, LinkedList};
 use std::cmp;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
-use crate::quad_tree::Arena;
 
 const RANGE: usize = 2000;
 
@@ -37,33 +36,12 @@ impl Grid {
             _ => {}
         }
 
-        let parsed = pattern
+        self.cells = pattern
             .map(|cell| cell.unwrap())
             .filter(|data | data.state == 1)
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, -(data.position.1 - (height as i64) / 2) as isize))
             .collect::<HashSet<_>>();
     
-        let mut arena_cells = parsed.clone().into_iter().collect::<LinkedList<_>>(); 
-        self.cells = parsed;
-        
-        let mut arena = Arena::new();
-
-        let top = arena_cells.pop_back();
-
-        match top {
-            Some((t_x, t_y)) => {
-                let mut max_span = cmp::max(t_x.abs(), t_y.abs());
-
-                for (x, y) in arena_cells.iter() {
-                    max_span = cmp::max(x.abs(), y.abs())
-                }
-
-                // arena_cells.push_back((t_x, t_y));
-                arena.from_world(arena_cells, 0, 0, 4 * (max_span / 4) + (4 as isize));
-                println!("Cells correctly loaded into the QuadTree!")
-            },
-            None => {}
-        }
     }
 
     pub fn is_alive(&self, coords: (isize, isize)) -> bool {
