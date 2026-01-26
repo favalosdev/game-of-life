@@ -1,4 +1,4 @@
-use std::collections::{HashMap, LinkedList, HashSet};
+use std::collections::{LinkedList, HashSet};
 use literal::list;
 
 type NodeId = usize;
@@ -164,7 +164,13 @@ impl Arena {
     }
 
     // Convert QuadTree to (x,y)
-    fn to_world(&self) -> LinkedList<(isize, isize)> {
+    fn to_world(
+        &self,
+        root: NodeId,
+        offset: isize,
+        start_x: isize,
+        start_y: isize
+    ) -> LinkedList<(isize, isize)> {
         list![]
     }
 
@@ -188,7 +194,7 @@ impl Arena {
                 if lookup.contains(&a) { ALIVE } else { DEAD },
                 if lookup.contains(&b) { ALIVE } else { DEAD },
                 if lookup.contains(&c) { ALIVE } else { DEAD },
-                if lookup.contains(&d) { ALIVE } else { DEAD },
+                if lookup.contains(&d) { ALIVE } else { DEAD }
             );
         }
 
@@ -197,22 +203,28 @@ impl Arena {
         let mut se_cells = list![];
         let mut sw_cells = list![];
 
-        for (x, y) in cells {
+        for (x, y) in cells.iter() {
+            let (x,y) = (*x, *y);
+
             if start_x <= x && x < start_x + span {
+                // Put cells in northeastern quadrant
                 if start_y <= y && y < start_y + span {
                     ne_cells.push_back((x, y));
                 }
 
-                if start_y - span <= y && y < start_y { 
+                // Put cells in southeastern quadrant
+                if start_y - span <= y && y < start_y {
                     se_cells.push_back((x, y));
                 }
             }
 
             if start_x - span <= x && x < start_x {
+                // Put cells in northwestern quadrant
                 if start_y <= y && y < start_y + span {
                     nw_cells.push_back((x, y));
                 }
 
+                // Put cells in southwestern quadrant
                 if start_y - span <= y && y < start_y {
                     sw_cells.push_back((x, y));
                 }
@@ -246,7 +258,7 @@ impl Arena {
             se_cells,
             start_x + new_span,
             start_y - new_span,
-            span
+            new_span
         );
 
         return self.join(nw, ne, sw, se);
