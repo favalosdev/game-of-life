@@ -4,12 +4,11 @@ use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::TextureQuery;
 use std::cmp;
-use std::collections::LinkedList;
 use std::path::Path;
 
 use crate::camera::Camera;
 use crate::quad_tree::QuadTree;
-use crate::{config::*, quad_tree};
+use crate::config::*;
 use crate::feedback::Feedback;
 
 // Stolen macros to handle annoying Rects
