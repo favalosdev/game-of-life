@@ -3,6 +3,7 @@ use literal::list;
 use std::cmp;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
+use std::ops::Rem;
 
 type NodeId = usize;
 
@@ -19,6 +20,8 @@ struct Node {
 const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
+
+const SPAN: isize = (2 as i32).pow(10) as isize;
 
 impl Node {
     fn new(
@@ -91,7 +94,7 @@ impl QuadTree {
                 }
 
                 cells.push_back((t_x, t_y));
-                self.world_to_qt_aux(cells, 0, 0, 4 * (max_span / 4) + (4 as isize));
+                self.world_to_qt_aux(cells, 0, 0, SPAN);
             },
             None => {}
         }
