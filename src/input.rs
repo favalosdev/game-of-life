@@ -4,9 +4,9 @@ use sdl2::EventPump;
 use sdl2::mouse::MouseState;
 
 use crate::camera::Camera;
-use crate::grid::Grid;
 use crate::feedback::{Feedback, MouseCoords};
 use crate::config::*;
+use crate::quad_tree::QuadTree;
 
 pub struct InputState {
     pub is_paused: bool,
@@ -25,14 +25,14 @@ impl InputState {
 pub fn handle_input(
     event_pump: &mut EventPump,
     camera: &mut Camera,
-    grid: &mut Grid,
+    quad_tree: &mut QuadTree,
     feedback: &mut Feedback,
     input_state: &mut InputState,
 ) -> bool {
     let mouse_state: MouseState = event_pump.mouse_state();
     let (x_w, y_w) = camera.from_screen_coords(mouse_state.x() - OFFSET_X, mouse_state.y() - OFFSET_Y);
     feedback.mouse_coords = MouseCoords { x: x_w, y: -y_w };
-    feedback.cell_count = grid.cells.iter().count();
+    feedback.cell_count = quad_tree.cell_count();
 
     for event in event_pump.poll_iter() {
         match event {
@@ -67,13 +67,14 @@ pub fn handle_input(
             },
             Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                 if input_state.is_paused {
-                    grid.evolve();
+                    quad_tree.next_gen();
                     feedback.generation += 1;
                 }
             },
             Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                 input_state.show_grid = !input_state.show_grid;
             },
+            /*
             Event::MouseButtonDown { x, y, .. } => {
                 if input_state.is_paused {
                     let (x_w, y_w) = camera.from_screen_coords(x - OFFSET_X, y - OFFSET_Y);
@@ -86,6 +87,7 @@ pub fn handle_input(
                     }
                 }
             }
+            */
             _ => {}
         }
     }

@@ -8,7 +8,8 @@ use std::collections::LinkedList;
 use std::path::Path;
 
 use crate::camera::Camera;
-use crate::config::*;
+use crate::quad_tree::QuadTree;
+use crate::{config::*, quad_tree};
 use crate::feedback::Feedback;
 
 // Stolen macros to handle annoying Rects
@@ -29,11 +30,13 @@ fn get_rect(camera: &Camera, x_raw: isize, y_raw: isize) -> Rect {
     rect!(xo_s + OFFSET_X, yo_s + OFFSET_Y, xf_s - xo_s, yf_s - yo_s)
 }
 
-fn draw_squares(canvas: &mut Canvas<Window>, cells: LinkedList<(isize, isize)>, camera: &Camera, show_grid: bool) {
+fn draw_squares(canvas: &mut Canvas<Window>, quad_tree: &QuadTree, camera: &Camera, show_grid: bool) {
     canvas.set_draw_color(CELL_COLOR);
 
     let mut min_x_s = WINDOW_WIDTH as i32;
     let mut min_y_s = WINDOW_HEIGHT as i32;
+
+    let cells = quad_tree.qt_to_world();
 
     for (x,y) in cells.iter() {
         let to_fill = get_rect(camera, *x, *y);
@@ -111,10 +114,10 @@ fn draw_feedback(canvas: &mut Canvas<Window>, feedback: &Feedback) {
     canvas.copy(&texture, None, Some(target)).unwrap();
 }
 
-pub fn draw_all(canvas: &mut Canvas<Window>, cells: LinkedList<(isize, isize)>, camera: &Camera, feedback: &Feedback, show_grid: bool) {
+pub fn draw_all(canvas: &mut Canvas<Window>, quad_tree: &QuadTree, camera: &Camera, feedback: &Feedback, show_grid: bool) {
     canvas.set_draw_color(Color::RGB(0,0,0));
     canvas.clear();
-    draw_squares(canvas, cells, camera, show_grid);
+    draw_squares(canvas, quad_tree, camera, show_grid);
     draw_feedback(canvas, feedback);
     canvas.present();
 }

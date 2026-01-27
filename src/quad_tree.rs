@@ -33,14 +33,14 @@ impl Node {
     }
 }
 
-pub struct Arena {
+pub struct QuadTree {
     nodes: Vec<Node>,
     root: NodeId,
     b: Vec<usize>,
     s: Vec<usize>
 }
 
-impl Arena {
+impl QuadTree {
     pub fn new() -> Self {
         let mut nodes = vec![];
 
@@ -52,7 +52,7 @@ impl Arena {
         nodes.push(dead);
         nodes.push(alive);
 
-        Arena { nodes, root: DEAD, b: vec![], s: vec![] }
+        QuadTree { nodes, root: DEAD, b: vec![], s: vec![] }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -191,7 +191,7 @@ impl Arena {
         let id = self.nodes.len();
 
         // Set new root if needed
-        if self.nodes[self.root].k < node.k {
+        if self.nodes[self.root].k <= node.k {
             self.root = id;
         }
 
@@ -237,6 +237,10 @@ impl Arena {
         } else {
             DEAD
         }
+    }
+
+    pub fn cell_count(&self) -> usize {
+        self.nodes[self.root].n
     }
 
     fn life_4x4(&mut self, m: NodeId) -> NodeId {
@@ -312,7 +316,6 @@ impl Arena {
         next
     }
 
-    // Convert QuadTree to (x,y)
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
         self.qt_to_world_aux(self.root, 0, 0)
     }
