@@ -53,7 +53,7 @@ fn main() {
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),
-        None => File::open("assets/patterns/gosperglidergun.rle").unwrap(),
+        None => File::open("assets/patterns/hwss.rle").unwrap(),
     };
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());

@@ -1,9 +1,7 @@
 use std::collections::{LinkedList, HashSet};
 use literal::list;
-use std::cmp;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
-use std::ops::Rem;
 
 type NodeId = usize;
 
@@ -21,7 +19,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SPAN: isize = (2 as i32).pow(10) as isize;
+const SIZE: isize = (2 as i32).pow(6) as isize;
 
 impl Node {
     fn new(
@@ -78,43 +76,30 @@ impl QuadTree {
             .filter(|data | data.state == 1)
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, -(data.position.1 - (height as i64) / 2) as isize))
             .collect::<LinkedList<_>>();
-
+        
         self.world_to_qt(cells);
     }
 
-    pub fn world_to_qt(&mut self, mut cells: LinkedList<(isize, isize)>) {
-        let top = cells.pop_back();
-
-        match top {
-            Some((t_x, t_y)) => {
-                let mut max_span = cmp::max(t_x.abs(), t_y.abs());
-
-                for (x, y) in cells.iter() {
-                    max_span = cmp::max(x.abs(), y.abs())
-                }
-
-                cells.push_back((t_x, t_y));
-                self.world_to_qt_aux(cells, 0, 0, SPAN);
-            },
-            None => {}
-        }
+    pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
+        self.world_to_qt_aux(cells, (0, 0), SIZE / 2);
     }
 
     // Convert (x,y) to QuadTree
     fn world_to_qt_aux(
         &mut self,
         cells: LinkedList<(isize, isize)>,
-        start_x: isize,
-        start_y: isize,
+        centre: (isize, isize),
         span: isize
     ) -> NodeId {
+        let (c_x, c_y) = centre;
+
         if span == 1 {
             let lookup = cells.iter().collect::<HashSet<_>>();
 
-            let a = (start_x, start_y + 1);
-            let b = (start_x + 1, start_y + 1);
-            let c = (start_x, start_y);
-            let d = (start_x + 1, start_y);
+            let a = (c_x - 1, c_y);
+            let b = (c_x, c_y);
+            let c = (c_x - 1, c_y - 1);
+            let d = (c_x, c_y - 1);
 
             return self.join(
                 if lookup.contains(&a) { ALIVE } else { DEAD },
@@ -132,26 +117,16 @@ impl QuadTree {
         for (x, y) in cells.iter() {
             let (x,y) = (*x, *y);
 
-            if start_x <= x && x < start_x + span {
-                // Put cells in northeastern quadrant
-                if start_y <= y && y < start_y + span {
+            if x >= c_x {
+                if y >= c_y {
                     ne_cells.push_back((x, y));
-                }
-
-                // Put cells in southeastern quadrant
-                if start_y - span <= y && y < start_y {
+                } else {
                     se_cells.push_back((x, y));
                 }
-            }
-
-            if start_x - span <= x && x < start_x {
-                // Put cells in northwestern quadrant
-                if start_y <= y && y < start_y + span {
+            } else {
+                if y >= c_y {
                     nw_cells.push_back((x, y));
-                }
-
-                // Put cells in southwestern quadrant
-                if start_y - span <= y && y < start_y {
+                } else {
                     sw_cells.push_back((x, y));
                 }
             }
@@ -161,29 +136,25 @@ impl QuadTree {
 
         let nw = self.world_to_qt_aux(
             nw_cells,
-            start_x - new_span,
-            start_y + new_span,
+            (c_x - new_span, c_y + new_span),
             new_span
         );
 
         let ne = self.world_to_qt_aux(
             ne_cells,
-            start_x + new_span,
-            start_y + new_span,
+            (c_x + new_span, c_y + new_span),
             new_span
         );
 
         let sw = self.world_to_qt_aux(
             sw_cells,
-            start_x - new_span,
-            start_y - new_span,
+            (c_x - new_span, c_y - new_span),
             new_span
         );
 
         let se = self.world_to_qt_aux(
             se_cells,
-            start_x + new_span,
-            start_y - new_span,
+            (c_x + new_span, c_y - new_span),
             new_span
         );
 
@@ -194,7 +165,7 @@ impl QuadTree {
         let id = self.nodes.len();
 
         // Set new root if needed
-        if self.nodes[self.root].k <= node.k {
+        if self.nodes[self.root].k < node.k {
             self.root = id;
         }
 
@@ -320,16 +291,16 @@ impl QuadTree {
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
-        self.qt_to_world_aux(self.root, 0, 0)
+        self.qt_to_world_aux(self.root, (0, 0))
     }
 
     fn qt_to_world_aux(
         &self,
         root: NodeId,
-        offset_x: isize,
-        offset_y: isize
+        centre: (isize, isize)
     ) -> LinkedList<(isize, isize)> {
         let top = &self.nodes[root];
+        let (c_x, c_y) = centre;
 
         if top.k == 0 {
             list![]
@@ -337,19 +308,19 @@ impl QuadTree {
             let mut points = list![];
 
             if top.a == ALIVE {
-                points.push_back((offset_x, offset_y+1));
+                points.push_back((c_x-1, c_y));
             }
 
             if top.b == ALIVE {
-                points.push_back((offset_x+1, offset_y+1));
+                points.push_back((c_x, c_y));
             } 
 
             if top.c == ALIVE {
-                points.push_back((offset_x, offset_y));
+                points.push_back((c_x-1, c_y-1));
             }
 
             if top.d == ALIVE {
-                points.push_back((offset_x+1, offset_y));
+                points.push_back((c_x, c_y-1));
             }
 
             points
@@ -357,10 +328,10 @@ impl QuadTree {
             let mut points = list![];
             let span = ((2 as u32).pow(top.k as u32) / 2) as isize;
 
-            let mut nw = self.qt_to_world_aux(top.a, offset_x - span/2, offset_y + span/2);
-            let mut ne = self.qt_to_world_aux(top.b, offset_x + span/2, offset_y + span/2);
-            let mut sw = self.qt_to_world_aux(top.c, offset_x - span/2, offset_y - span/2);
-            let mut se = self.qt_to_world_aux(top.c, offset_x + span/2, offset_y - span/2);
+            let mut nw = self.qt_to_world_aux(top.a, (c_x - span, c_y + span));
+            let mut ne = self.qt_to_world_aux(top.b, (c_x + span, c_y + span));
+            let mut sw = self.qt_to_world_aux(top.c, (c_x - span, c_y - span));
+            let mut se = self.qt_to_world_aux(top.c, (c_x + span, c_y - span));
 
             points.append(&mut nw);
             points.append(&mut ne);
