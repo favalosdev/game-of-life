@@ -218,7 +218,7 @@ impl QuadTree {
             outer += &self.nodes[id].n;
         }
 
-        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
+        if self.nodes[e].n == 1 && outer == 2 || outer == 3 {
             ALIVE
         } else {
             DEAD
@@ -249,14 +249,13 @@ impl QuadTree {
     }
 
     fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
-        let next = if self.nodes[m].n == 0 {
-            // empty
-            self.nodes[m].a
-        } else if self.nodes[m].k == 2 {
-            // base case
-            self.life_4x4(m)
+        let m_node = &self.nodes[m];
+
+        if m_node.n == 0 {
+            return m_node.a;
+        } else if m_node.k == 2 {
+            return self.life_4x4(m);
         } else {
-            let m_node = &self.nodes[m];
             let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
             
             let a = &self.nodes[ma];
@@ -296,10 +295,8 @@ impl QuadTree {
             let s3 = self.join(self.nodes[c4].d, self.nodes[c5].c, self.nodes[c7].b, self.nodes[c8].a);
             let s4 = self.join(self.nodes[c5].d, self.nodes[c6].c, self.nodes[c8].b, self.nodes[c9].a);
 
-            let s = self.join(s1, s2, s3, s4);
-            s
+            return self.join(s1, s2, s3, s4);
         };
-        next
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
