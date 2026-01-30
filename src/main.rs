@@ -33,7 +33,6 @@ struct Args {
 }
     
 fn main() {
-    // SDL-2 stuff
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -45,7 +44,6 @@ fn main() {
     let mut event_pump = sdl_context.event_pump().unwrap();
     let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
 
-    // Game of life specific stuff
     let args = Args::parse();
     let mut quad_tree= QuadTree::new();
     let mut camera = Camera::new(ZOOM, 0, 0);
