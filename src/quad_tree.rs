@@ -190,11 +190,9 @@ impl QuadTree {
 
     fn new_node(&mut self, node: Node) -> NodeId {
         let id = self.nodes.len();
-        println!("Adding new node with id: {}", id);
 
         // Set new root if needed
         if self.nodes[self.root].k <= node.k {
-            println!("New root set");
             self.root = id;
         }
 
