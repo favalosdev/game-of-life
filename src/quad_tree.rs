@@ -1,4 +1,5 @@
-use std::collections::{LinkedList, HashSet};
+use std::collections::{LinkedList, HashSet, HashMap};
+use std::hash::Hash;
 use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
@@ -34,11 +35,30 @@ impl Node {
     }
 }
 
+struct Caches {
+    join: HashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
+    life: HashMap<(NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId), NodeId>,
+    life_4x4: HashMap<NodeId, NodeId>,
+    next_gen: HashMap<NodeId, NodeId>
+}
+
+impl Caches {
+    fn new() -> Self {
+        Caches {
+            join: HashMap::new(),
+            life: HashMap::new(),
+            life_4x4: HashMap::new(),
+            next_gen: HashMap::new()
+        }
+    }
+}
+
 pub struct QuadTree {
     nodes: Vec<Node>,
     root: NodeId,
     b: Vec<usize>,
-    s: Vec<usize>
+    s: Vec<usize>,
+    caches: Caches
 }
 
 impl QuadTree {
@@ -53,7 +73,9 @@ impl QuadTree {
         nodes.push(dead);
         nodes.push(alive);
 
-        QuadTree { nodes, root: DEAD, b: vec![], s: vec![] }
+        let caches = Caches::new();
+
+        QuadTree { nodes, root: DEAD, b: vec![], s: vec![], caches }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -77,7 +99,6 @@ impl QuadTree {
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, -(data.position.1 - (height as i64) / 2) as isize))
             .collect::<LinkedList<_>>();
 
-
         self.world_to_qt(cells);
     }
 
@@ -87,6 +108,10 @@ impl QuadTree {
 
     pub fn get_id(&self) -> NodeId {
         self.root
+    }
+
+    pub fn gen(&self) -> usize {
+        self.nodes[self.root].n
     }
 
     // Convert (x,y) to QuadTree
@@ -175,9 +200,11 @@ impl QuadTree {
 
     fn new_node(&mut self, node: Node) -> NodeId {
         let id = self.nodes.len();
+        println!("Adding new node with id: {}", id);
 
         // Set new root if needed
-        if self.nodes[self.root].k < node.k {
+        if self.nodes[self.root].k <= node.k {
+            println!("New root set");
             self.root = id;
         }
 
@@ -186,6 +213,10 @@ impl QuadTree {
     }
 
     fn join(&mut self, a: NodeId, b: NodeId, c: NodeId, d: NodeId) -> NodeId {
+        if let Some(id) = self.caches.join.get(&(a, b, c, d)) {
+            return *id;
+        }
+
         let n = &self.nodes[a].n + &self.nodes[b].n + &self.nodes[c].n + &self.nodes[d].n;
         let to_add = Node::new(n, &self.nodes[a].k + 1, a, b, c, d);
         self.new_node(to_add)
@@ -212,13 +243,17 @@ impl QuadTree {
     }
 
     fn life(&self, a: NodeId, b: NodeId, c: NodeId, d: NodeId, e: NodeId, f: NodeId, g: NodeId, h: NodeId, i: NodeId) -> NodeId {
+        if let Some(id) = self.caches.life.get(&(a, b, c, d, e, f, g, h, i)) {
+            return *id;
+        }
+        
         let mut outer = 0;
 
         for id in vec![a, b, c, d, f, g, h, i] {
             outer += &self.nodes[id].n;
         }
 
-        if self.nodes[e].n == 1 && outer == 2 || outer == 3 {
+        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
             ALIVE
         } else {
             DEAD
@@ -230,6 +265,10 @@ impl QuadTree {
     }
 
     fn life_4x4(&mut self, m: NodeId) -> NodeId {
+        if let Some(id) = self.caches.life_4x4.get(&m) {
+            return *id;
+        }
+
         let m_node = &self.nodes[m];
         let a = &self.nodes[m_node.a];
         let b = &self.nodes[m_node.b];
@@ -245,10 +284,14 @@ impl QuadTree {
     }
 
     pub fn next_gen(&mut self) {
-        self.root = self.next_gen_aux(self.root);
+        self.next_gen_aux(self.root);
     }
 
     fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
+        if let Some(id) = self.caches.next_gen.get(&m) {
+            return *id;
+        }
+
         let m_node = &self.nodes[m];
 
         let next = if m_node.n == 0 {
