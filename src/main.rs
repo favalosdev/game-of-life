@@ -17,7 +17,6 @@ mod input;
 mod camera;
 mod quad_tree;
 
-// use grid::Grid;
 use quad_tree::QuadTree;
 use camera::Camera;
 use config::*;
