@@ -53,7 +53,7 @@ fn main() {
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),
-        None => File::open("assets/patterns/hwss.rle").unwrap(),
+        None => File::open("assets/patterns/gosperglidergun.rle").unwrap(),
     };
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
@@ -64,15 +64,26 @@ fn main() {
     let mut last_game_tick = Instant::now();
     let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
+    let mut last_qt = quad_tree.get_id();
+    let mut last_cells = quad_tree.qt_to_world();
+
     // Initial render
-    draw_all(&mut canvas, &quad_tree, &camera, &feedback, input_state.show_grid);
+    draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
 
     'running: loop {
         let now = Instant::now();
         if now.duration_since(last_game_tick) >= game_interval {
             last_game_tick = now;
 
-            draw_all(&mut canvas, &quad_tree, &camera, &feedback, input_state.show_grid);
+            let current_qt = quad_tree.get_id();
+
+            if last_qt != quad_tree.get_id() {
+                last_cells = quad_tree.qt_to_world();
+                last_qt = current_qt;
+            }
+
+            draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
+
             if !input_state.is_paused {
                 quad_tree.next_gen();
                 feedback.generation += 1;

@@ -19,7 +19,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SIZE: isize = (2 as i32).pow(6) as isize;
+const SIZE: isize = (2 as i32).pow(10) as isize;
 
 impl Node {
     fn new(
@@ -76,12 +76,17 @@ impl QuadTree {
             .filter(|data | data.state == 1)
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, -(data.position.1 - (height as i64) / 2) as isize))
             .collect::<LinkedList<_>>();
-        
+
+
         self.world_to_qt(cells);
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
         self.world_to_qt_aux(cells, (0, 0), SIZE / 2);
+    }
+
+    pub fn get_id(&self) -> NodeId {
+        self.root
     }
 
     // Convert (x,y) to QuadTree
@@ -96,17 +101,24 @@ impl QuadTree {
         if span == 1 {
             let lookup = cells.iter().collect::<HashSet<_>>();
 
-            let a = (c_x - 1, c_y);
-            let b = (c_x, c_y);
-            let c = (c_x - 1, c_y - 1);
-            let d = (c_x, c_y - 1);
+            let a_coords = (c_x-1, c_y);
+            let b_coords = (c_x, c_y);
+            let c_coords = (c_x-1, c_y-1);
+            let d_coords = (c_x, c_y-1);
 
-            return self.join(
-                if lookup.contains(&a) { ALIVE } else { DEAD },
-                if lookup.contains(&b) { ALIVE } else { DEAD },
-                if lookup.contains(&c) { ALIVE } else { DEAD },
-                if lookup.contains(&d) { ALIVE } else { DEAD }
-            );
+            let a = if lookup.contains(&a_coords) { ALIVE } else { DEAD };
+            let b = if lookup.contains(&b_coords) { ALIVE } else { DEAD };
+            let c = if lookup.contains(&c_coords) { ALIVE } else { DEAD };
+            let d = if lookup.contains(&d_coords) { ALIVE } else { DEAD };
+
+            /*
+            println!("{:?}, {:?},", a_coord, if a == ALIVE { "alive" } else { "dead" });
+            println!("{:?}, {:?},", b_coord, if b == ALIVE { "alive" } else { "dead" });
+            println!("{:?}, {:?},", c_coord, if c == ALIVE { "alive" } else { "dead" });
+            println!("{:?}, {:?},", d_coord, if d == ALIVE { "alive" } else { "dead" });
+            */
+
+            return self.join(a, b, c, d);
         }
 
         let mut ne_cells = list![];
@@ -206,7 +218,7 @@ impl QuadTree {
             outer += &self.nodes[id].n;
         }
 
-        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
+        if self.nodes[e].n == 1 && outer == 2 || outer == 3 {
             ALIVE
         } else {
             DEAD
@@ -233,7 +245,7 @@ impl QuadTree {
     }
 
     pub fn next_gen(&mut self) {
-        self.next_gen_aux(self.root);
+        self.root = self.next_gen_aux(self.root);
     }
 
     fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
@@ -285,20 +297,21 @@ impl QuadTree {
             let s3 = self.join(self.nodes[c4].d, self.nodes[c5].c, self.nodes[c7].b, self.nodes[c8].a);
             let s4 = self.join(self.nodes[c5].d, self.nodes[c6].c, self.nodes[c8].b, self.nodes[c9].a);
 
-            let s = self.join(s1, s2, s3, s4);
-            s
+            self.join(s1, s2, s3, s4)
         };
         next
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
-        self.qt_to_world_aux(self.root, (0, 0))
+        let span = ((2 as u32).pow(self.nodes[self.root].k as u32) / 2) as isize;
+        self.qt_to_world_aux(self.root, (0, 0), span)
     }
 
     fn qt_to_world_aux(
         &self,
         root: NodeId,
-        centre: (isize, isize)
+        centre: (isize, isize),
+        span: isize
     ) -> LinkedList<(isize, isize)> {
         let top = &self.nodes[root];
         let (c_x, c_y) = centre;
@@ -308,31 +321,55 @@ impl QuadTree {
         } else if top.k == 1 {
             let mut points = list![];
 
+            let a_coords = (c_x-1, c_y);
+            let b_coords = (c_x, c_y);
+            let c_coords = (c_x-1, c_y-1);
+            let d_coords = (c_x, c_y-1);
+
+            /*
+            println!("{:?}, {}", a_coords, if top.a == ALIVE { "alive" } else { "dead" });
+            println!("{:?}, {}", b_coords, if top.b == ALIVE { "alive" } else { "dead" });
+            println!("{:?}, {}", c_coords, if top.c == ALIVE { "alive" } else { "dead" });
+            println!("{:?}, {}", d_coords, if top.d == ALIVE { "alive" } else { "dead" });
+            */
+
             if top.a == ALIVE {
-                points.push_back((c_x-1, c_y));
+                points.push_back(a_coords);
             }
 
             if top.b == ALIVE {
-                points.push_back((c_x, c_y));
+                points.push_back(b_coords);
             } 
 
             if top.c == ALIVE {
-                points.push_back((c_x-1, c_y-1));
+                points.push_back(c_coords);
             }
 
             if top.d == ALIVE {
-                points.push_back((c_x, c_y-1));
+                points.push_back(d_coords);
             }
 
             points
         } else {
             let mut points = list![];
-            let span = ((2 as u32).pow(top.k as u32) / 2) as isize;
+            let new_span = span / 2;
 
-            let mut nw = self.qt_to_world_aux(top.a, (c_x - span, c_y + span));
-            let mut ne = self.qt_to_world_aux(top.b, (c_x + span, c_y + span));
-            let mut sw = self.qt_to_world_aux(top.c, (c_x - span, c_y - span));
-            let mut se = self.qt_to_world_aux(top.c, (c_x + span, c_y - span));
+            let nw_centre = (c_x - new_span, c_y + new_span);
+            let ne_centre = (c_x + new_span, c_y + new_span);
+            let sw_centre = (c_x - new_span, c_y - new_span);
+            let se_centre = (c_x + new_span, c_y - new_span);
+
+            /*
+            println!("{:?}", nw_centre);
+            println!("{:?}", ne_centre);
+            println!("{:?}", sw_centre);
+            println!("{:?}", se_centre);
+            */
+
+            let mut nw = self.qt_to_world_aux(top.a, nw_centre, new_span);
+            let mut ne = self.qt_to_world_aux(top.b, ne_centre, new_span);
+            let mut sw = self.qt_to_world_aux(top.c, sw_centre, new_span);
+            let mut se = self.qt_to_world_aux(top.d, se_centre, new_span);
 
             points.append(&mut nw);
             points.append(&mut ne);
