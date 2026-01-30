@@ -1,5 +1,4 @@
 use std::collections::{LinkedList, HashSet, HashMap};
-use std::hash::Hash;
 use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
@@ -37,7 +36,6 @@ impl Node {
 
 struct Caches {
     join: HashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
-    life: HashMap<(NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId), NodeId>,
     life_4x4: HashMap<NodeId, NodeId>,
     next_gen: HashMap<NodeId, NodeId>
 }
@@ -46,7 +44,6 @@ impl Caches {
     fn new() -> Self {
         Caches {
             join: HashMap::new(),
-            life: HashMap::new(),
             life_4x4: HashMap::new(),
             next_gen: HashMap::new()
         }
@@ -136,13 +133,6 @@ impl QuadTree {
             let c = if lookup.contains(&c_coords) { ALIVE } else { DEAD };
             let d = if lookup.contains(&d_coords) { ALIVE } else { DEAD };
 
-            /*
-            println!("{:?}, {:?},", a_coord, if a == ALIVE { "alive" } else { "dead" });
-            println!("{:?}, {:?},", b_coord, if b == ALIVE { "alive" } else { "dead" });
-            println!("{:?}, {:?},", c_coord, if c == ALIVE { "alive" } else { "dead" });
-            println!("{:?}, {:?},", d_coord, if d == ALIVE { "alive" } else { "dead" });
-            */
-
             return self.join(a, b, c, d);
         }
 
@@ -219,7 +209,9 @@ impl QuadTree {
 
         let n = &self.nodes[a].n + &self.nodes[b].n + &self.nodes[c].n + &self.nodes[d].n;
         let to_add = Node::new(n, &self.nodes[a].k + 1, a, b, c, d);
-        self.new_node(to_add)
+        let result = self.new_node(to_add);
+        self.caches.join.insert((a, b, c, d), result);
+        result
     }
 
     fn get_zero(&mut self, k: usize) -> NodeId {
@@ -243,10 +235,6 @@ impl QuadTree {
     }
 
     fn life(&self, a: NodeId, b: NodeId, c: NodeId, d: NodeId, e: NodeId, f: NodeId, g: NodeId, h: NodeId, i: NodeId) -> NodeId {
-        if let Some(id) = self.caches.life.get(&(a, b, c, d, e, f, g, h, i)) {
-            return *id;
-        }
-        
         let mut outer = 0;
 
         for id in vec![a, b, c, d, f, g, h, i] {
@@ -280,11 +268,14 @@ impl QuadTree {
         let cb = self.life(a.c, a.d, b.c, c.a, c.b, d.a, c.c, c.d, d.c);
         let da = self.life(a.d, b.c, b.d, c.b, d.a, d.b, c.d, d.c, d.d);
 
-        self.join(ad, bc, cb, da)
+        let result = self.join(ad, bc, cb, da);
+
+        self.caches.life_4x4.insert(m, result);
+        result
     }
 
     pub fn next_gen(&mut self) {
-        self.next_gen_aux(self.root);
+        self.root = self.next_gen_aux(self.root);
     }
 
     fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
@@ -342,6 +333,9 @@ impl QuadTree {
 
             self.join(s1, s2, s3, s4)
         };
+
+        self.caches.next_gen.insert(m, next);
+
         next
     }
 
@@ -359,7 +353,7 @@ impl QuadTree {
         let top = &self.nodes[root];
         let (c_x, c_y) = centre;
 
-        if top.k == 0 {
+        if top.k == 0 || top.n == 0 {
             list![]
         } else if top.k == 1 {
             let mut points = list![];
@@ -368,13 +362,6 @@ impl QuadTree {
             let b_coords = (c_x, c_y);
             let c_coords = (c_x-1, c_y-1);
             let d_coords = (c_x, c_y-1);
-
-            /*
-            println!("{:?}, {}", a_coords, if top.a == ALIVE { "alive" } else { "dead" });
-            println!("{:?}, {}", b_coords, if top.b == ALIVE { "alive" } else { "dead" });
-            println!("{:?}, {}", c_coords, if top.c == ALIVE { "alive" } else { "dead" });
-            println!("{:?}, {}", d_coords, if top.d == ALIVE { "alive" } else { "dead" });
-            */
 
             if top.a == ALIVE {
                 points.push_back(a_coords);
@@ -402,22 +389,26 @@ impl QuadTree {
             let sw_centre = (c_x - new_span, c_y - new_span);
             let se_centre = (c_x + new_span, c_y - new_span);
 
-            /*
-            println!("{:?}", nw_centre);
-            println!("{:?}", ne_centre);
-            println!("{:?}", sw_centre);
-            println!("{:?}", se_centre);
-            */
+            if self.nodes[top.a].n > 0 {
+                let mut nw = self.qt_to_world_aux(top.a, nw_centre, new_span);
+                points.append(&mut nw);
+            }
 
-            let mut nw = self.qt_to_world_aux(top.a, nw_centre, new_span);
-            let mut ne = self.qt_to_world_aux(top.b, ne_centre, new_span);
-            let mut sw = self.qt_to_world_aux(top.c, sw_centre, new_span);
-            let mut se = self.qt_to_world_aux(top.d, se_centre, new_span);
+            if self.nodes[top.b].n > 0 {
+                let mut ne = self.qt_to_world_aux(top.b, ne_centre, new_span);
+                points.append(&mut ne);
+            }
 
-            points.append(&mut nw);
-            points.append(&mut ne);
-            points.append(&mut sw);
-            points.append(&mut se);
+            if self.nodes[top.c].n > 0 {
+                let mut sw = self.qt_to_world_aux(top.c, sw_centre, new_span);
+                points.append(&mut sw);
+            }
+
+            if self.nodes[top.d].n > 0 {
+                let mut se = self.qt_to_world_aux(top.d, se_centre, new_span);
+                points.append(&mut se);
+            }
+         
             points
         }
     }
