@@ -208,7 +208,7 @@ impl QuadTree {
         }
 
         let n = &self.nodes[a].n + &self.nodes[b].n + &self.nodes[c].n + &self.nodes[d].n;
-        let to_add = Node::new(n, &self.nodes[a].k + 1, a, b, c, d);
+        let to_add = Node::new(n, &self.nodes[d].k + 1, a, b, c, d);
         let result = self.new_node(to_add);
         self.caches.join.insert((a, b, c, d), result);
         result
@@ -275,7 +275,7 @@ impl QuadTree {
     }
 
     pub fn next_gen(&mut self) {
-        self.root = self.next_gen_aux(self.root);
+        self.next_gen_aux(self.root);
     }
 
     fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
@@ -333,9 +333,7 @@ impl QuadTree {
 
             self.join(s1, s2, s3, s4)
         };
-
         self.caches.next_gen.insert(m, next);
-
         next
     }
 
