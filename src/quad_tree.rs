@@ -72,7 +72,7 @@ impl QuadTree {
 
         let caches = Caches::new();
 
-        QuadTree { nodes, root: DEAD, b: vec![], s: vec![], caches }
+        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
