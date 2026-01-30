@@ -38,7 +38,7 @@ struct Caches {
     join: HashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
     life_4x4: HashMap<NodeId, NodeId>,
     next_gen: HashMap<NodeId, NodeId>,
-    successor: HashMap<(NodeId, Option<usize>), NodeId>
+    successor: HashMap<NodeId, NodeId>
 }
 
 impl Caches {
@@ -266,12 +266,11 @@ impl QuadTree {
 
     pub fn advance(&mut self) {
         let nested = self.centre(self.root);
-        self.root = self.next_gen(nested);
+        self.root = self.successor(nested);
     }
 
-    // No expontential speed-ups
-    fn successor(&mut self, m: NodeId, j: Option<usize>) -> NodeId {
-        if let Some(id) = self.caches.successor.get(&(m, j)) {
+    fn successor(&mut self, m: NodeId) -> NodeId {
+        if let Some(id) = self.caches.successor.get(&m) {
             return *id;
         }
 
@@ -308,29 +307,29 @@ impl QuadTree {
             let j8 = self.join(cb, da, cd, dc);
             let j9 = self.join(da, db, dc, dd);
 
-            let c1 = self.successor(j1, j);
-            let c2 = self.successor(j2, j);
-            let c3 = self.successor(j3, j);
-            let c4 = self.successor(j4, j);
-            let c5 = self.successor(j5, j);
-            let c6 = self.successor(j6, j);
-            let c7 = self.successor(j7, j);
-            let c8 = self.successor(j8, j);
-            let c9 = self.successor(j9, j);
+            let c1 = self.successor(j1);
+            let c2 = self.successor(j2);
+            let c3 = self.successor(j3);
+            let c4 = self.successor(j4);
+            let c5 = self.successor(j5);
+            let c6 = self.successor(j6);
+            let c7 = self.successor(j7);
+            let c8 = self.successor(j8);
+            let c9 = self.successor(j9);
             
-            let s1 = self.join(self.nodes[c1].d, self.nodes[c2].c, self.nodes[c4].b, self.nodes[c5].a);
-            let s2 = self.join(self.nodes[c2].d, self.nodes[c3].c, self.nodes[c5].b, self.nodes[c6].a);
-            let s3 = self.join(self.nodes[c4].d, self.nodes[c5].c, self.nodes[c7].b, self.nodes[c8].a);
-            let s4 = self.join(self.nodes[c5].d, self.nodes[c6].c, self.nodes[c8].b, self.nodes[c9].a);
+            let s1 = self.join(c1, c2, c4, c5);
+            let s2 = self.join(c2, c3, c5, c6);
+            let s3 = self.join(c4, c5, c7, c8);
+            let s4 = self.join(c5, c6, c8, c9);
 
-            let ss1 = self.successor(s1, j);
-            let ss2 = self.successor(s2, j);
-            let ss3 = self.successor(s3, j);
-            let ss4 = self.successor(s4, j);
+            let ss1 = self.successor(s1);
+            let ss2 = self.successor(s2);
+            let ss3 = self.successor(s3);
+            let ss4 = self.successor(s4);
 
             self.join(ss1, ss2, ss3, ss4)
         };
-        self.caches.successor.insert((m, j), next);
+        self.caches.successor.insert(m, next);
         next
     }
 
