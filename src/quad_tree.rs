@@ -37,7 +37,8 @@ impl Node {
 struct Caches {
     join: HashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
     life_4x4: HashMap<NodeId, NodeId>,
-    next_gen: HashMap<NodeId, NodeId>
+    next_gen: HashMap<NodeId, NodeId>,
+    successor: HashMap<(NodeId, Option<usize>), NodeId>
 }
 
 impl Caches {
@@ -45,7 +46,8 @@ impl Caches {
         Caches {
             join: HashMap::new(),
             life_4x4: HashMap::new(),
-            next_gen: HashMap::new()
+            next_gen: HashMap::new(),
+            successor: HashMap::new()
         }
     }
 }
@@ -100,15 +102,11 @@ impl QuadTree {
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.world_to_qt_aux(cells, (0, 0), SIZE / 2);
+        self.root = self.world_to_qt_aux(cells, (0, 0), SIZE / 2);
     }
 
     pub fn get_id(&self) -> NodeId {
         self.root
-    }
-
-    pub fn gen(&self) -> usize {
-        self.nodes[self.root].n
     }
 
     // Convert (x,y) to QuadTree
@@ -190,12 +188,6 @@ impl QuadTree {
 
     fn new_node(&mut self, node: Node) -> NodeId {
         let id = self.nodes.len();
-
-        // Set new root if needed
-        if self.nodes[self.root].k <= node.k {
-            self.root = id;
-        }
-
         self.nodes.push(node);
         id
     }
@@ -222,7 +214,7 @@ impl QuadTree {
     }
 
     fn centre(&mut self, m: NodeId) -> NodeId {
-        let m_node = &(self.nodes[m]);
+        let m_node = &self.nodes[m];
         let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
         let z = self.get_zero(m_node.k - 1);
         let ja = self.join(z, z, z, ma);
@@ -272,11 +264,78 @@ impl QuadTree {
         result
     }
 
-    pub fn next_gen(&mut self) {
-        self.next_gen_aux(self.root);
+    pub fn advance(&mut self) {
+        let nested = self.centre(self.root);
+        self.root = self.next_gen(nested);
     }
 
-    fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
+    // No expontential speed-ups
+    fn successor(&mut self, m: NodeId, j: Option<usize>) -> NodeId {
+        if let Some(id) = self.caches.successor.get(&(m, j)) {
+            return *id;
+        }
+
+        let m_node = &self.nodes[m];
+
+        let next = if m_node.n == 0 {
+            // empty
+            m_node.a
+        } else if m_node.k == 2 {
+            // base case
+            self.life_4x4(m)
+        } else {
+            let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
+            
+            let a = &self.nodes[ma];
+            let (aa, ab, ac, ad) = (a.a, a.b, a.c, a.d);
+            
+            let b = &self.nodes[mb];
+            let (ba, bb, bc, bd) = (b.a, b.b, b.c, b.d);
+            
+            let c = &self.nodes[mc];
+            let (ca, cb, cc, cd) = (c.a, c.b, c.c, c.d);
+            
+            let d = &self.nodes[md];
+            let (da, db, dc, dd) = (d.a, d.b, d.c, d.d);
+            
+            let j1 = self.join(aa, ab, ac, ad);
+            let j2 = self.join(ab, ba, ad, bc);
+            let j3 = self.join(ba, bb, bc, bd);
+            let j4 = self.join(ac, ad, ca, cb);
+            let j5 = self.join(ad, bc, cb, da);
+            let j6 = self.join(bc, bd, da, db);
+            let j7 = self.join(ca, cb, cc, cd);
+            let j8 = self.join(cb, da, cd, dc);
+            let j9 = self.join(da, db, dc, dd);
+
+            let c1 = self.successor(j1, j);
+            let c2 = self.successor(j2, j);
+            let c3 = self.successor(j3, j);
+            let c4 = self.successor(j4, j);
+            let c5 = self.successor(j5, j);
+            let c6 = self.successor(j6, j);
+            let c7 = self.successor(j7, j);
+            let c8 = self.successor(j8, j);
+            let c9 = self.successor(j9, j);
+            
+            let s1 = self.join(self.nodes[c1].d, self.nodes[c2].c, self.nodes[c4].b, self.nodes[c5].a);
+            let s2 = self.join(self.nodes[c2].d, self.nodes[c3].c, self.nodes[c5].b, self.nodes[c6].a);
+            let s3 = self.join(self.nodes[c4].d, self.nodes[c5].c, self.nodes[c7].b, self.nodes[c8].a);
+            let s4 = self.join(self.nodes[c5].d, self.nodes[c6].c, self.nodes[c8].b, self.nodes[c9].a);
+
+            let ss1 = self.successor(s1, j);
+            let ss2 = self.successor(s2, j);
+            let ss3 = self.successor(s3, j);
+            let ss4 = self.successor(s4, j);
+
+            self.join(ss1, ss2, ss3, ss4)
+        };
+        self.caches.successor.insert((m, j), next);
+        next
+    }
+
+    // No expontential speed-ups
+    fn next_gen(&mut self, m: NodeId) -> NodeId {
         if let Some(id) = self.caches.next_gen.get(&m) {
             return *id;
         }
@@ -314,15 +373,15 @@ impl QuadTree {
             let j8 = self.join(cb, da, cd, dc);
             let j9 = self.join(da, db, dc, dd);
 
-            let c1 = self.next_gen_aux(j1);
-            let c2 = self.next_gen_aux(j2);
-            let c3 = self.next_gen_aux(j3);
-            let c4 = self.next_gen_aux(j4);
-            let c5 = self.next_gen_aux(j5);
-            let c6 = self.next_gen_aux(j6);
-            let c7 = self.next_gen_aux(j7);
-            let c8 = self.next_gen_aux(j8);
-            let c9 = self.next_gen_aux(j9);
+            let c1 = self.next_gen(j1);
+            let c2 = self.next_gen(j2);
+            let c3 = self.next_gen(j3);
+            let c4 = self.next_gen(j4);
+            let c5 = self.next_gen(j5);
+            let c6 = self.next_gen(j6);
+            let c7 = self.next_gen(j7);
+            let c8 = self.next_gen(j8);
+            let c9 = self.next_gen(j9);
             
             let s1 = self.join(self.nodes[c1].d, self.nodes[c2].c, self.nodes[c4].b, self.nodes[c5].a);
             let s2 = self.join(self.nodes[c2].d, self.nodes[c3].c, self.nodes[c5].b, self.nodes[c6].a);
