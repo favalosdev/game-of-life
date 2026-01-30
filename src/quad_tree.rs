@@ -251,10 +251,12 @@ impl QuadTree {
     fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
         let m_node = &self.nodes[m];
 
-        if m_node.n == 0 {
-            return m_node.a;
+        let next = if m_node.n == 0 {
+            // empty
+            m_node.a
         } else if m_node.k == 2 {
-            return self.life_4x4(m);
+            // base case
+            self.life_4x4(m)
         } else {
             let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
             
@@ -295,8 +297,9 @@ impl QuadTree {
             let s3 = self.join(self.nodes[c4].d, self.nodes[c5].c, self.nodes[c7].b, self.nodes[c8].a);
             let s4 = self.join(self.nodes[c5].d, self.nodes[c6].c, self.nodes[c8].b, self.nodes[c9].a);
 
-            return self.join(s1, s2, s3, s4);
+            self.join(s1, s2, s3, s4)
         };
+        next
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
