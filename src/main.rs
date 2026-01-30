@@ -14,11 +14,11 @@ mod config;
 mod feedback;
 mod renderer;
 mod input;
-mod grid;
 mod camera;
 mod quad_tree;
 
-use grid::Grid;
+// use grid::Grid;
+use quad_tree::QuadTree;
 use camera::Camera;
 use config::*;
 use feedback::Feedback;
@@ -48,15 +48,15 @@ fn main() {
 
     // Game of life specific stuff
     let args = Args::parse();
-    let mut grid = Grid::new();
+    let mut quad_tree= QuadTree::new();
     let mut camera = Camera::new(ZOOM, 0, 0);
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),
-        None => File::open("assets/patterns/gosperglidergun.rle").unwrap(),
+        None => File::open("assets/patterns/hwss.rle").unwrap(),
     };
 
-    grid.load_pattern(Rle::new_from_file(file).unwrap());
+    quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
 
     let mut feedback = Feedback::new();
     let mut input_state = InputState::new();
@@ -65,20 +65,21 @@ fn main() {
     let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
     // Initial render
-    draw_all(&mut canvas, &grid, &camera, &feedback, input_state.show_grid);
+    draw_all(&mut canvas, &quad_tree, &camera, &feedback, input_state.show_grid);
 
     'running: loop {
         let now = Instant::now();
         if now.duration_since(last_game_tick) >= game_interval {
             last_game_tick = now;
-            draw_all(&mut canvas, &grid, &camera, &feedback, input_state.show_grid);
+
+            draw_all(&mut canvas, &quad_tree, &camera, &feedback, input_state.show_grid);
             if !input_state.is_paused {
-                grid.evolve();
+                quad_tree.next_gen();
                 feedback.generation += 1;
             }
         }
 
-        if handle_input(&mut event_pump, &mut camera, &mut grid, &mut feedback, &mut input_state) {
+        if handle_input(&mut event_pump, &mut camera, &mut quad_tree, &mut feedback, &mut input_state) {
             break 'running;
         }
 

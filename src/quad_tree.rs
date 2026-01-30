@@ -1,8 +1,11 @@
 use std::collections::{LinkedList, HashSet};
 use literal::list;
+use ca_formats::rle::Rle;
+use ca_formats::Input;
 
 type NodeId = usize;
 
+#[derive(Debug)]
 struct Node {
     n: usize,
     k: usize,
@@ -16,18 +19,29 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
+const SIZE: isize = (2 as i32).pow(6) as isize;
+
 impl Node {
-    fn new(n: usize, k: usize, a: NodeId, b: NodeId, c: NodeId, d: NodeId) -> Self {
+    fn new(
+        n: usize,
+        k: usize,
+        a: NodeId,
+        b: NodeId,
+        c: NodeId,
+        d: NodeId
+    ) -> Self {
         Node { n, k, a, b, c, d }
     }
 }
 
-pub struct Arena {
+pub struct QuadTree {
     nodes: Vec<Node>,
     root: NodeId,
+    b: Vec<usize>,
+    s: Vec<usize>
 }
 
-impl Arena {
+impl QuadTree {
     pub fn new() -> Self {
         let mut nodes = vec![];
 
@@ -39,7 +53,112 @@ impl Arena {
         nodes.push(dead);
         nodes.push(alive);
 
-        Arena { nodes, root: ALIVE }
+        QuadTree { nodes, root: DEAD, b: vec![], s: vec![] }
+    }
+
+    pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
+        let header_data = pattern.header_data().unwrap();
+        let width = header_data.x;
+        let height = header_data.y;
+        let rule = &header_data.rule;
+
+        match rule {
+            Some(content) => {
+                let parts: Vec<&str> = content.split("/").collect();
+                self.b = parts[0][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
+                self.s = parts[1][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
+            },
+            _ => {}
+        }
+
+        let cells =  pattern
+            .map(|cell| cell.unwrap())
+            .filter(|data | data.state == 1)
+            .map(|data| ((data.position.0 - (width as i64) / 2) as isize, -(data.position.1 - (height as i64) / 2) as isize))
+            .collect::<LinkedList<_>>();
+        
+        self.world_to_qt(cells);
+    }
+
+    pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
+        self.world_to_qt_aux(cells, (0, 0), SIZE / 2);
+    }
+
+    // Convert (x,y) to QuadTree
+    fn world_to_qt_aux(
+        &mut self,
+        cells: LinkedList<(isize, isize)>,
+        centre: (isize, isize),
+        span: isize
+    ) -> NodeId {
+        let (c_x, c_y) = centre;
+
+        if span == 1 {
+            let lookup = cells.iter().collect::<HashSet<_>>();
+
+            let a = (c_x - 1, c_y);
+            let b = (c_x, c_y);
+            let c = (c_x - 1, c_y - 1);
+            let d = (c_x, c_y - 1);
+
+            return self.join(
+                if lookup.contains(&a) { ALIVE } else { DEAD },
+                if lookup.contains(&b) { ALIVE } else { DEAD },
+                if lookup.contains(&c) { ALIVE } else { DEAD },
+                if lookup.contains(&d) { ALIVE } else { DEAD }
+            );
+        }
+
+        let mut ne_cells = list![];
+        let mut nw_cells = list![];
+        let mut se_cells = list![];
+        let mut sw_cells = list![];
+
+        for (x, y) in cells.iter() {
+            let (x,y) = (*x, *y);
+
+            if x >= c_x {
+                if y >= c_y {
+                    ne_cells.push_back((x, y));
+                } else {
+                    se_cells.push_back((x, y));
+                }
+            } else {
+                if y >= c_y {
+                    nw_cells.push_back((x, y));
+                } else {
+                    sw_cells.push_back((x, y));
+                }
+            }
+        }
+
+        let new_span = span / 2;
+
+        let nw = self.world_to_qt_aux(
+            nw_cells,
+            (c_x - new_span, c_y + new_span),
+            new_span
+        );
+
+        let ne = self.world_to_qt_aux(
+            ne_cells,
+            (c_x + new_span, c_y + new_span),
+            new_span
+        );
+
+        let sw = self.world_to_qt_aux(
+            sw_cells,
+            (c_x - new_span, c_y - new_span),
+            new_span
+        );
+
+        let se = self.world_to_qt_aux(
+            se_cells,
+            (c_x + new_span, c_y - new_span),
+            new_span
+        );
+
+        return self.join(nw, ne, sw, se);
     }
 
     fn new_node(&mut self, node: Node) -> NodeId {
@@ -87,11 +206,15 @@ impl Arena {
             outer += &self.nodes[id].n;
         }
 
-        if self.nodes[e].n == 1 && outer == 2 || outer == 3 {
+        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
             ALIVE
         } else {
             DEAD
         }
+    }
+
+    pub fn cell_count(&self) -> usize {
+        self.nodes[self.root].n
     }
 
     fn life_4x4(&mut self, m: NodeId) -> NodeId {
@@ -109,7 +232,11 @@ impl Arena {
         self.join(ad, bc, cb, da)
     }
 
-    fn next_gen(&mut self, m: NodeId) -> NodeId {
+    pub fn next_gen(&mut self) {
+        self.next_gen_aux(self.root);
+    }
+
+    fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
         let next = if self.nodes[m].n == 0 {
             // empty
             self.nodes[m].a
@@ -142,15 +269,15 @@ impl Arena {
             let j8 = self.join(cb, da, cd, dc);
             let j9 = self.join(da, db, dc, dd);
 
-            let c1 = self.next_gen(j1);
-            let c2 = self.next_gen(j2);
-            let c3 = self.next_gen(j3);
-            let c4 = self.next_gen(j4);
-            let c5 = self.next_gen(j5);
-            let c6 = self.next_gen(j6);
-            let c7 = self.next_gen(j7);
-            let c8 = self.next_gen(j8);
-            let c9 = self.next_gen(j9);
+            let c1 = self.next_gen_aux(j1);
+            let c2 = self.next_gen_aux(j2);
+            let c3 = self.next_gen_aux(j3);
+            let c4 = self.next_gen_aux(j4);
+            let c5 = self.next_gen_aux(j5);
+            let c6 = self.next_gen_aux(j6);
+            let c7 = self.next_gen_aux(j7);
+            let c8 = self.next_gen_aux(j8);
+            let c9 = self.next_gen_aux(j9);
             
             let s1 = self.join(self.nodes[c1].d, self.nodes[c2].c, self.nodes[c4].b, self.nodes[c5].a);
             let s2 = self.join(self.nodes[c2].d, self.nodes[c3].c, self.nodes[c5].b, self.nodes[c6].a);
@@ -163,104 +290,54 @@ impl Arena {
         next
     }
 
-    // Convert QuadTree to (x,y)
-    fn to_world(
-        &self,
-        root: NodeId,
-        offset: isize,
-        start_x: isize,
-        start_y: isize
-    ) -> LinkedList<(isize, isize)> {
-        list![]
+    pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
+        self.qt_to_world_aux(self.root, (0, 0))
     }
 
-    // Convert (x,y) to QuadTree
-    pub fn from_world(
-        &mut self,
-        cells: LinkedList<(isize, isize)>,
-        start_x: isize,
-        start_y: isize,
-        span: isize
-    ) -> NodeId {
-        if span == 1 {
-            let lookup = cells.iter().collect::<HashSet<_>>();
+    fn qt_to_world_aux(
+        &self,
+        root: NodeId,
+        centre: (isize, isize)
+    ) -> LinkedList<(isize, isize)> {
+        let top = &self.nodes[root];
+        let (c_x, c_y) = centre;
 
-            let a = (start_x, start_y + 1);
-            let b = (start_x + 1, start_y + 1);
-            let c = (start_x, start_y);
-            let d = (start_x + 1, start_y);
+        if top.k == 0 {
+            list![]
+        } else if top.k == 1 {
+            let mut points = list![];
 
-            return self.join(
-                if lookup.contains(&a) { ALIVE } else { DEAD },
-                if lookup.contains(&b) { ALIVE } else { DEAD },
-                if lookup.contains(&c) { ALIVE } else { DEAD },
-                if lookup.contains(&d) { ALIVE } else { DEAD }
-            );
-        }
-
-        let mut ne_cells = list![];
-        let mut nw_cells = list![];
-        let mut se_cells = list![];
-        let mut sw_cells = list![];
-
-        for (x, y) in cells.iter() {
-            let (x,y) = (*x, *y);
-
-            if start_x <= x && x < start_x + span {
-                // Put cells in northeastern quadrant
-                if start_y <= y && y < start_y + span {
-                    ne_cells.push_back((x, y));
-                }
-
-                // Put cells in southeastern quadrant
-                if start_y - span <= y && y < start_y {
-                    se_cells.push_back((x, y));
-                }
+            if top.a == ALIVE {
+                points.push_back((c_x-1, c_y));
             }
 
-            if start_x - span <= x && x < start_x {
-                // Put cells in northwestern quadrant
-                if start_y <= y && y < start_y + span {
-                    nw_cells.push_back((x, y));
-                }
+            if top.b == ALIVE {
+                points.push_back((c_x, c_y));
+            } 
 
-                // Put cells in southwestern quadrant
-                if start_y - span <= y && y < start_y {
-                    sw_cells.push_back((x, y));
-                }
+            if top.c == ALIVE {
+                points.push_back((c_x-1, c_y-1));
             }
+
+            if top.d == ALIVE {
+                points.push_back((c_x, c_y-1));
+            }
+
+            points
+        } else {
+            let mut points = list![];
+            let span = ((2 as u32).pow(top.k as u32) / 2) as isize;
+
+            let mut nw = self.qt_to_world_aux(top.a, (c_x - span, c_y + span));
+            let mut ne = self.qt_to_world_aux(top.b, (c_x + span, c_y + span));
+            let mut sw = self.qt_to_world_aux(top.c, (c_x - span, c_y - span));
+            let mut se = self.qt_to_world_aux(top.c, (c_x + span, c_y - span));
+
+            points.append(&mut nw);
+            points.append(&mut ne);
+            points.append(&mut sw);
+            points.append(&mut se);
+            points
         }
-
-        let new_span = span / 2;
-
-        let nw = self.from_world(
-            nw_cells,
-            start_x - new_span,
-            start_y + new_span,
-            new_span
-        );
-
-        let ne = self.from_world(
-            ne_cells,
-            start_x + new_span,
-            start_y + new_span,
-            new_span
-        );
-
-        let sw = self.from_world(
-            sw_cells,
-            start_x - new_span,
-            start_y - new_span,
-            new_span
-        );
-
-        let se = self.from_world(
-            se_cells,
-            start_x + new_span,
-            start_y - new_span,
-            new_span
-        );
-
-        return self.join(nw, ne, sw, se);
     }
 }
