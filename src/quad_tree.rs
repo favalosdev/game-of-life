@@ -237,14 +237,15 @@ impl QuadTree {
     }
 
     fn next_gen_aux(&mut self, m: NodeId) -> NodeId {
-        let next = if self.nodes[m].n == 0 {
+        let m_node = &self.nodes[m];
+
+        let next = if m_node.n == 0 {
             // empty
-            self.nodes[m].a
-        } else if self.nodes[m].k == 2 {
+            m_node.a
+        } else if m_node.k == 2 {
             // base case
             self.life_4x4(m)
         } else {
-            let m_node = &self.nodes[m];
             let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
             
             let a = &self.nodes[ma];
