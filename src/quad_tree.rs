@@ -64,7 +64,7 @@ pub struct QuadTree {
 
 impl QuadTree {
     pub fn new(hash_life: bool) -> Self {
-        let mut nodes = vec![];
+        let mut nodes = Vec::with_capacity(20_000_000);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
         let dead = Node::new(0, 0, VOID, VOID, VOID, VOID);

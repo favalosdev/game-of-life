@@ -45,12 +45,12 @@ fn main() {
     let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
 
     let args = Args::parse();
-    let mut quad_tree= QuadTree::new(true);
+    let mut quad_tree= QuadTree::new(false);
     let mut camera = Camera::new(ZOOM, 0, 0);
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),
-        None => File::open("assets/patterns/house.rle").unwrap(),
+        None => File::open("assets/patterns/tm.rle").unwrap(),
     };
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
