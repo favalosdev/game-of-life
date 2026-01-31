@@ -20,7 +20,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SIZE: isize = (2 as u32).pow(8) as isize;
+const SIZE: isize = (2 as u32).pow(15) as isize;
 
 impl Node {
     fn new(
@@ -118,6 +118,11 @@ impl QuadTree {
         centre: (isize, isize),
         span: isize
     ) -> NodeId {
+        if cells.is_empty() {
+            let k = (2 * span).ilog2() as usize;
+            return self.zero(k);
+        }
+
         let (c_x, c_y) = centre;
 
         if span == 1 {
@@ -161,45 +166,15 @@ impl QuadTree {
 
         let new_span = span / 2;
 
-        let nw = if !nw_cells.is_empty() {
-            self.world_to_qt_aux(
-                nw_cells,
-                (c_x - new_span, c_y + new_span),
-                new_span
-            )
-        } else {
-            self.zero(span as usize)
-        };
+        let nw_centre = (c_x - new_span, c_y + new_span);
+        let ne_centre = (c_x + new_span, c_y + new_span);
+        let sw_centre = (c_x - new_span, c_y - new_span);
+        let se_centre = (c_x + new_span, c_y - new_span);
 
-        let ne = if !ne_cells.is_empty() {
-            self.world_to_qt_aux(
-                ne_cells,
-                (c_x + new_span, c_y + new_span),
-                new_span
-            )
-        } else {
-            self.zero(span as usize)
-        };
-
-        let sw = if !sw_cells.is_empty() {
-            self.world_to_qt_aux(
-                sw_cells,
-                (c_x - new_span, c_y - new_span),
-                new_span
-            )
-        } else {
-            self.zero(span as usize)
-        };
-
-        let se = if !se_cells.is_empty() {
-            self.world_to_qt_aux(
-                se_cells,
-                (c_x + new_span, c_y - new_span),
-                new_span
-            )
-        } else {
-            self.zero(span as usize)
-        };
+        let nw = self.world_to_qt_aux(nw_cells, nw_centre, new_span);
+        let ne = self.world_to_qt_aux(ne_cells, ne_centre, new_span);
+        let sw = self.world_to_qt_aux(sw_cells, sw_centre, new_span);
+        let se = self.world_to_qt_aux(se_cells, se_centre, new_span);
 
         return self.join(nw, ne, sw, se);
     }
@@ -216,7 +191,7 @@ impl QuadTree {
         }
 
         let n = &self.nodes[a].n + &self.nodes[b].n + &self.nodes[c].n + &self.nodes[d].n;
-        let to_add = Node::new(n, &self.nodes[d].k + 1, a, b, c, d);
+        let to_add = Node::new(n, &self.nodes[a].k + 1, a, b, c, d);
         let result = self.new_node(to_add);
         self.caches.join.insert((a, b, c, d), result);
         result
@@ -413,8 +388,9 @@ impl QuadTree {
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
-        let span = ((2 as u32).pow(self.nodes[self.root].k as u32) / 2) as isize;
-        self.qt_to_world_aux(self.root, (0, 0), span)
+        let k = self.nodes[self.root].k;
+        let size = (2 as usize).pow(k as u32) as isize;
+        self.qt_to_world_aux(self.root, (0, 0), size / 2)
     }
 
     fn qt_to_world_aux(
