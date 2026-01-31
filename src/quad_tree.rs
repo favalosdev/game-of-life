@@ -5,7 +5,7 @@ use ca_formats::Input;
 
 type NodeId = usize;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Node {
     n: usize,
     k: usize,
@@ -36,6 +36,7 @@ impl Node {
 
 struct Caches {
     join: HashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
+    life: HashMap<(NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId), NodeId>,
     life_4x4: HashMap<NodeId, NodeId>,
     next_gen: HashMap<NodeId, NodeId>,
     successor: HashMap<NodeId, NodeId>
@@ -45,6 +46,7 @@ impl Caches {
     fn new() -> Self {
         Caches {
             join: HashMap::new(),
+            life: HashMap::new(),
             life_4x4: HashMap::new(),
             next_gen: HashMap::new(),
             successor: HashMap::new()
@@ -204,11 +206,11 @@ impl QuadTree {
         result
     }
 
-    fn get_zero(&mut self, k: usize) -> NodeId {
+    fn zero(&mut self, k: usize) -> NodeId {
         if k == 0 {
             DEAD
         } else {
-            let z= self.get_zero(k-1);
+            let z= self.zero(k-1);
             self.join(z, z, z, z)
         }
     }
@@ -216,7 +218,7 @@ impl QuadTree {
     fn centre(&mut self, m: NodeId) -> NodeId {
         let m_node = &self.nodes[m];
         let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
-        let z = self.get_zero(m_node.k - 1);
+        let z = self.zero(m_node.k - 1);
         let ja = self.join(z, z, z, ma);
         let jb = self.join(z, z, mb, z);
         let jc = self.join(z, mc, z, z);
@@ -224,18 +226,24 @@ impl QuadTree {
         self.join(ja, jb, jc, jd)
     }
 
-    fn life(&self, a: NodeId, b: NodeId, c: NodeId, d: NodeId, e: NodeId, f: NodeId, g: NodeId, h: NodeId, i: NodeId) -> NodeId {
+    fn life(&mut self, a: NodeId, b: NodeId, c: NodeId, d: NodeId, e: NodeId, f: NodeId, g: NodeId, h: NodeId, i: NodeId) -> NodeId {
+        if let Some(id) = self.caches.life.get(&(a,b,c,d,e,f,g,h,i)) {
+            return *id;
+        }
+
         let mut outer = 0;
 
         for id in vec![a, b, c, d, f, g, h, i] {
             outer += &self.nodes[id].n;
         }
 
-        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
+        let result = if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
             ALIVE
         } else {
             DEAD
-        }
+        };
+        self.caches.life.insert((a,b,c,d,e,f,g,h,i), result);
+        result
     }
 
     pub fn cell_count(&self) -> usize {
@@ -248,10 +256,10 @@ impl QuadTree {
         }
 
         let m_node = &self.nodes[m];
-        let a = &self.nodes[m_node.a];
-        let b = &self.nodes[m_node.b];
-        let c = &self.nodes[m_node.c];
-        let d = &self.nodes[m_node.d];
+        let a = self.nodes[m_node.a];
+        let b = self.nodes[m_node.b];
+        let c = self.nodes[m_node.c];
+        let d = self.nodes[m_node.d];
 
         let ad = self.life(a.a, a.b, b.a, a.c, a.d, b.c, c.a, c.b, d.a);
         let bc = self.life(a.b, b.a, b.b, a.d, b.c, b.d, c.b, d.a, d.b);
