@@ -27,9 +27,12 @@ use input::{handle_input, InputState};
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// File-path of the pattern (in .rle format) to load
+    // File-path of the pattern (in .rle format) to load
     #[arg(short = 'p', long)]
     pattern_path: Option<String>,
+    // Whether the code should run with the HashLife optimization or not
+    #[arg(long, default_value_t=false)]
+    hash_life: bool 
 }
     
 fn main() {
@@ -45,12 +48,12 @@ fn main() {
     let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
 
     let args = Args::parse();
-    let mut quad_tree= QuadTree::new(false);
+    let mut quad_tree= QuadTree::new(args.hash_life);
     let mut camera = Camera::new(ZOOM, 0, 0);
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),
-        None => File::open("assets/patterns/tm.rle").unwrap(),
+        None => File::open("assets/patterns/gosperglidergun.rle").unwrap(),
     };
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());

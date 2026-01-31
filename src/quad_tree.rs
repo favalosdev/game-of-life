@@ -400,32 +400,28 @@ impl QuadTree {
         span: isize
     ) -> LinkedList<(isize, isize)> {
         let top = &self.nodes[root];
+
+        // Early return for empty nodes
+        if top.n == 0 {
+            return list![];
+        }
+
         let (c_x, c_y) = centre;
 
-        if top.k == 0 || top.n == 0 {
-            list![]
-        } else if top.k == 1 {
+        if top.k == 1 {
             let mut points = list![];
 
-            let a_coords = (c_x-1, c_y);
-            let b_coords = (c_x, c_y);
-            let c_coords = (c_x-1, c_y-1);
-            let d_coords = (c_x, c_y-1);
-
             if top.a == ALIVE {
-                points.push_back(a_coords);
+                points.push_back((c_x - 1, c_y));
             }
-
             if top.b == ALIVE {
-                points.push_back(b_coords);
-            } 
-
-            if top.c == ALIVE {
-                points.push_back(c_coords);
+                points.push_back((c_x, c_y));
             }
-
+            if top.c == ALIVE {
+                points.push_back((c_x - 1, c_y - 1));
+            }
             if top.d == ALIVE {
-                points.push_back(d_coords);
+                points.push_back((c_x, c_y - 1));
             }
 
             points
@@ -433,31 +429,23 @@ impl QuadTree {
             let mut points = list![];
             let new_span = span / 2;
 
-            let nw_centre = (c_x - new_span, c_y + new_span);
-            let ne_centre = (c_x + new_span, c_y + new_span);
-            let sw_centre = (c_x - new_span, c_y - new_span);
-            let se_centre = (c_x + new_span, c_y - new_span);
+            // Cache node IDs to avoid repeated field access
+            let (a_id, b_id, c_id, d_id) = (top.a, top.b, top.c, top.d);
 
-            if self.nodes[top.a].n > 0 {
-                let mut nw = self.qt_to_world_aux(top.a, nw_centre, new_span);
-                points.append(&mut nw);
+            // Check all quadrants and recurse only if non-empty
+            if self.nodes[a_id].n > 0 {
+                points.append(&mut self.qt_to_world_aux(a_id, (c_x - new_span, c_y + new_span), new_span));
+            }
+            if self.nodes[b_id].n > 0 {
+                points.append(&mut self.qt_to_world_aux(b_id, (c_x + new_span, c_y + new_span), new_span));
+            }
+            if self.nodes[c_id].n > 0 {
+                points.append(&mut self.qt_to_world_aux(c_id, (c_x - new_span, c_y - new_span), new_span));
+            }
+            if self.nodes[d_id].n > 0 {
+                points.append(&mut self.qt_to_world_aux(d_id, (c_x + new_span, c_y - new_span), new_span));
             }
 
-            if self.nodes[top.b].n > 0 {
-                let mut ne = self.qt_to_world_aux(top.b, ne_centre, new_span);
-                points.append(&mut ne);
-            }
-
-            if self.nodes[top.c].n > 0 {
-                let mut sw = self.qt_to_world_aux(top.c, sw_centre, new_span);
-                points.append(&mut sw);
-            }
-
-            if self.nodes[top.d].n > 0 {
-                let mut se = self.qt_to_world_aux(top.d, se_centre, new_span);
-                points.append(&mut se);
-            }
-         
             points
         }
     }
