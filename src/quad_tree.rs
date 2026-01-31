@@ -6,7 +6,7 @@ use ca_formats::Input;
 
 type NodeId = usize;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug)]
 struct Node {
     n: usize,
     k: usize,
@@ -224,7 +224,7 @@ impl QuadTree {
         self.join(ja, jb, jc, jd)
     }
 
-    fn life(&mut self, a: NodeId, b: NodeId, c: NodeId, d: NodeId, e: NodeId, f: NodeId, g: NodeId, h: NodeId, i: NodeId) -> NodeId {
+    fn life(&self, a: NodeId, b: NodeId, c: NodeId, d: NodeId, e: NodeId, f: NodeId, g: NodeId, h: NodeId, i: NodeId) -> NodeId {
         let mut outer = 0;
 
         for id in vec![a, b, c, d, f, g, h, i] {
@@ -244,10 +244,10 @@ impl QuadTree {
 
     fn life_4x4(&mut self, m: NodeId) -> NodeId {
         let m_node = &self.nodes[m];
-        let a = self.nodes[m_node.a];
-        let b = self.nodes[m_node.b];
-        let c = self.nodes[m_node.c];
-        let d = self.nodes[m_node.d];
+        let a = &self.nodes[m_node.a];
+        let b = &self.nodes[m_node.b];
+        let c = &self.nodes[m_node.c];
+        let d = &self.nodes[m_node.d];
 
         let ad = self.life(a.a, a.b, b.a, a.c, a.d, b.c, c.a, c.b, d.a);
         let bc = self.life(a.b, b.a, b.b, a.d, b.c, b.d, c.b, d.a, d.b);
