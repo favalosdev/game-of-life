@@ -58,11 +58,12 @@ pub struct QuadTree {
     root: NodeId,
     b: Vec<usize>,
     s: Vec<usize>,
-    caches: Caches
+    caches: Caches,
+    hash_life: bool
 }
 
 impl QuadTree {
-    pub fn new() -> Self {
+    pub fn new(hash_life: bool) -> Self {
         let mut nodes = vec![];
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -75,7 +76,7 @@ impl QuadTree {
 
         let caches = Caches::new();
 
-        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches }
+        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches, hash_life }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -265,9 +266,9 @@ impl QuadTree {
         self.join(ad, bc, cb, da)
     }
 
-    pub fn advance(&mut self, exponential: bool) {
+    pub fn advance(&mut self) {
         let nested = self.centre(self.root);
-        self.root = if exponential { self.successor(nested) } else { self.next_gen(nested) };
+        self.root = if self.hash_life { self.successor(nested) } else { self.next_gen(nested) };
     }
 
     fn successor(&mut self, m: NodeId) -> NodeId {

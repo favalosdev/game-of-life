@@ -67,7 +67,7 @@ pub fn handle_input(
             },
             Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                 if input_state.is_paused {
-                    quad_tree.advance(false);
+                    quad_tree.advance();
                     feedback.generation += 1;
                 }
             },

@@ -45,12 +45,12 @@ fn main() {
     let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
 
     let args = Args::parse();
-    let mut quad_tree= QuadTree::new();
+    let mut quad_tree= QuadTree::new(true);
     let mut camera = Camera::new(ZOOM, 0, 0);
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),
-        None => File::open("assets/patterns/tm.rle").unwrap(),
+        None => File::open("assets/patterns/octametapixel.rle").unwrap(),
     };
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
@@ -82,7 +82,7 @@ fn main() {
             draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
 
             if !input_state.is_paused {
-                quad_tree.advance(false);
+                quad_tree.advance();
                 feedback.generation += 1;
             }
         }
