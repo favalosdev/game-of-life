@@ -106,7 +106,7 @@ impl QuadTree {
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
         let max_x = cells.iter().map(|t| t.0).map(|x| x.abs()).max();
-        let max_y = cells.iter().map(|t| t.0).map(|y| y.abs()).max();
+        let max_y = cells.iter().map(|t| t.1).map(|y| y.abs()).max();
         let max_dist= cmp::max(max_x, max_y);
         let mut k: u32 = 0;
 
