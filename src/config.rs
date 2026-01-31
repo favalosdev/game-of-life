@@ -1,7 +1,7 @@
 use sdl2::pixels::Color;
 
-pub const WINDOW_HEIGHT: u32 = 600;
-pub const WINDOW_WIDTH: u32 = 800;
+pub const WINDOW_HEIGHT: u32 = 768;
+pub const WINDOW_WIDTH: u32 = 1024;
 pub const GAME_FREQ: u64 = 20;
 pub const FPS: u32 = 200;
 pub const ZOOM: i32 = 20;
