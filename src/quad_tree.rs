@@ -3,7 +3,6 @@ use std::collections::{LinkedList, HashSet};
 use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
-use std::cmp;
 
 type NodeId = usize;
 
@@ -21,7 +20,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SIZE: isize = (2 as i32).pow(12) as isize;
+const SIZE: isize = (2 as u32).pow(12) as isize;
 
 impl Node {
     fn new(
@@ -105,27 +104,6 @@ impl QuadTree {
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        /*
-        let max_x = cells.iter().map(|t| t.0).map(|x| x.abs()).max();
-        let max_y = cells.iter().map(|t| t.1).map(|y| y.abs()).max();
-        let max_dist= cmp::max(max_x, max_y);
-        let mut k: u32 = 0;
-
-        match max_dist {
-            Some(dist) => {
-                let mut span = (2 as u32).pow(k) as isize;
-
-                while span < dist {
-                    k += 1;
-                    span = (2 as u32).pow(k) as isize;
-                }
-
-                self.root = self.world_to_qt_aux(cells, (0, 0), span);
-            },
-            None => {}
-        }
-        */
-
         self.root = self.world_to_qt_aux(cells, (0,0), SIZE / 2)
     }
 
@@ -183,29 +161,45 @@ impl QuadTree {
 
         let new_span = span / 2;
 
-        let nw = self.world_to_qt_aux(
-            nw_cells,
-            (c_x - new_span, c_y + new_span),
-            new_span
-        );
+        let nw = if !nw_cells.is_empty() {
+            self.world_to_qt_aux(
+                nw_cells,
+                (c_x - new_span, c_y + new_span),
+                new_span
+            )
+        } else {
+            self.zero(span as usize)
+        };
 
-        let ne = self.world_to_qt_aux(
-            ne_cells,
-            (c_x + new_span, c_y + new_span),
-            new_span
-        );
+        let ne = if !ne_cells.is_empty() {
+            self.world_to_qt_aux(
+                ne_cells,
+                (c_x + new_span, c_y + new_span),
+                new_span
+            )
+        } else {
+            self.zero(span as usize)
+        };
 
-        let sw = self.world_to_qt_aux(
-            sw_cells,
-            (c_x - new_span, c_y - new_span),
-            new_span
-        );
+        let sw = if !sw_cells.is_empty() {
+            self.world_to_qt_aux(
+                sw_cells,
+                (c_x - new_span, c_y - new_span),
+                new_span
+            )
+        } else {
+            self.zero(span as usize)
+        };
 
-        let se = self.world_to_qt_aux(
-            se_cells,
-            (c_x + new_span, c_y - new_span),
-            new_span
-        );
+        let se = if !se_cells.is_empty() {
+            self.world_to_qt_aux(
+                se_cells,
+                (c_x + new_span, c_y - new_span),
+                new_span
+            )
+        } else {
+            self.zero(span as usize)
+        };
 
         return self.join(nw, ne, sw, se);
     }
