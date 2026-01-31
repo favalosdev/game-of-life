@@ -36,9 +36,10 @@ impl Node {
 
 struct Caches {
     join: HashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
+    zero: HashMap<usize, NodeId>,
     life: HashMap<(NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId), NodeId>,
     life_4x4: HashMap<NodeId, NodeId>,
-    next_gen: HashMap<NodeId, NodeId>,
+    // next_gen: HashMap<NodeId, NodeId>,
     successor: HashMap<NodeId, NodeId>
 }
 
@@ -46,9 +47,10 @@ impl Caches {
     fn new() -> Self {
         Caches {
             join: HashMap::new(),
+            zero: HashMap::new(),
             life: HashMap::new(),
             life_4x4: HashMap::new(),
-            next_gen: HashMap::new(),
+            // next_gen: HashMap::new(),
             successor: HashMap::new()
         }
     }
@@ -207,12 +209,19 @@ impl QuadTree {
     }
 
     fn zero(&mut self, k: usize) -> NodeId {
-        if k == 0 {
+        if let Some(id) = self.caches.zero.get(&k) {
+            return *id;
+        }
+
+        let result = if k == 0 {
             DEAD
         } else {
             let z= self.zero(k-1);
             self.join(z, z, z, z)
-        }
+        };
+
+        self.caches.zero.insert(k, result);
+        result
     }
 
     fn centre(&mut self, m: NodeId) -> NodeId {
@@ -342,6 +351,7 @@ impl QuadTree {
     }
 
     // No expontential speed-ups
+    /*
     fn next_gen(&mut self, m: NodeId) -> NodeId {
         if let Some(id) = self.caches.next_gen.get(&m) {
             return *id;
@@ -400,6 +410,7 @@ impl QuadTree {
         self.caches.next_gen.insert(m, next);
         next
     }
+    */
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
         let span = ((2 as u32).pow(self.nodes[self.root].k as u32) / 2) as isize;
