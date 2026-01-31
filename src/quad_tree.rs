@@ -20,7 +20,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SIZE: isize = (2 as u32).pow(15) as isize;
+const SIZE: isize = (2 as u32).pow(17) as isize;
 
 impl Node {
     fn new(
