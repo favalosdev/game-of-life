@@ -10,7 +10,7 @@ use crate::quad_tree::QuadTree;
 
 pub struct InputState {
     pub is_paused: bool,
-    pub show_grid: bool,
+    pub show_grid: bool
 }
 
 impl InputState {
@@ -67,7 +67,7 @@ pub fn handle_input(
             },
             Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                 if input_state.is_paused {
-                    quad_tree.advance();
+                    quad_tree.advance(false);
                     feedback.generation += 1;
                 }
             },

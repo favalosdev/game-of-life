@@ -1,4 +1,5 @@
-use std::collections::{LinkedList, HashSet, HashMap};
+use rustc_hash::FxHashMap;
+use std::collections::{LinkedList, HashSet};
 use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
@@ -19,7 +20,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SIZE: isize = (2 as i32).pow(10) as isize;
+const SIZE: isize = (2 as i32).pow(12) as isize;
 
 impl Node {
     fn new(
@@ -35,23 +36,19 @@ impl Node {
 }
 
 struct Caches {
-    join: HashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
-    zero: HashMap<usize, NodeId>,
-    life: HashMap<(NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId, NodeId), NodeId>,
-    life_4x4: HashMap<NodeId, NodeId>,
-    // next_gen: HashMap<NodeId, NodeId>,
-    successor: HashMap<NodeId, NodeId>
+    join: FxHashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
+    zero: FxHashMap<usize, NodeId>,
+    successor: FxHashMap<NodeId, NodeId>,
+    next_gen: FxHashMap<NodeId, NodeId>
 }
 
 impl Caches {
     fn new() -> Self {
         Caches {
-            join: HashMap::new(),
-            zero: HashMap::new(),
-            life: HashMap::new(),
-            life_4x4: HashMap::new(),
-            // next_gen: HashMap::new(),
-            successor: HashMap::new()
+            join: FxHashMap::default(),
+            zero: FxHashMap::default(),
+            successor: FxHashMap::default(),
+            next_gen: FxHashMap::default()
         }
     }
 }
@@ -236,23 +233,17 @@ impl QuadTree {
     }
 
     fn life(&mut self, a: NodeId, b: NodeId, c: NodeId, d: NodeId, e: NodeId, f: NodeId, g: NodeId, h: NodeId, i: NodeId) -> NodeId {
-        if let Some(id) = self.caches.life.get(&(a,b,c,d,e,f,g,h,i)) {
-            return *id;
-        }
-
         let mut outer = 0;
 
         for id in vec![a, b, c, d, f, g, h, i] {
             outer += &self.nodes[id].n;
         }
 
-        let result = if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
+        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
             ALIVE
         } else {
             DEAD
-        };
-        self.caches.life.insert((a,b,c,d,e,f,g,h,i), result);
-        result
+        }
     }
 
     pub fn cell_count(&self) -> usize {
@@ -260,10 +251,6 @@ impl QuadTree {
     }
 
     fn life_4x4(&mut self, m: NodeId) -> NodeId {
-        if let Some(id) = self.caches.life_4x4.get(&m) {
-            return *id;
-        }
-
         let m_node = &self.nodes[m];
         let a = self.nodes[m_node.a];
         let b = self.nodes[m_node.b];
@@ -275,28 +262,26 @@ impl QuadTree {
         let cb = self.life(a.c, a.d, b.c, c.a, c.b, d.a, c.c, c.d, d.c);
         let da = self.life(a.d, b.c, b.d, c.b, d.a, d.b, c.d, d.c, d.d);
 
-        let result = self.join(ad, bc, cb, da);
-
-        self.caches.life_4x4.insert(m, result);
-        result
+        self.join(ad, bc, cb, da)
     }
 
-    pub fn advance(&mut self) {
+    pub fn advance(&mut self, exponential: bool) {
         let nested = self.centre(self.root);
-        self.root = self.successor(nested);
+        self.root = if exponential { self.successor(nested) } else { self.next_gen(nested) };
     }
 
     fn successor(&mut self, m: NodeId) -> NodeId {
+        let m_node = &self.nodes[m];
+        let level = m_node.k;
+
         if let Some(id) = self.caches.successor.get(&m) {
             return *id;
         }
 
-        let m_node = &self.nodes[m];
-
         let next = if m_node.n == 0 {
             // empty
             m_node.a
-        } else if m_node.k == 2 {
+        } else if level == 2 {
             // base case
             self.life_4x4(m)
         } else {
@@ -351,7 +336,6 @@ impl QuadTree {
     }
 
     // No expontential speed-ups
-    /*
     fn next_gen(&mut self, m: NodeId) -> NodeId {
         if let Some(id) = self.caches.next_gen.get(&m) {
             return *id;
@@ -410,7 +394,6 @@ impl QuadTree {
         self.caches.next_gen.insert(m, next);
         next
     }
-    */
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
         let span = ((2 as u32).pow(self.nodes[self.root].k as u32) / 2) as isize;

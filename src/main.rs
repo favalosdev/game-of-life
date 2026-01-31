@@ -82,7 +82,7 @@ fn main() {
             draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
 
             if !input_state.is_paused {
-                quad_tree.advance();
+                quad_tree.advance(false);
                 feedback.generation += 1;
             }
         }
