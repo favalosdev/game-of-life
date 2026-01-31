@@ -3,6 +3,7 @@ use std::collections::{LinkedList, HashSet};
 use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
+use std::cmp;
 
 type NodeId = usize;
 
@@ -104,7 +105,24 @@ impl QuadTree {
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(cells, (0, 0), SIZE / 2);
+        let max_x = cells.iter().map(|t| t.0).map(|x| x.abs()).max();
+        let max_y = cells.iter().map(|t| t.0).map(|y| y.abs()).max();
+        let max_dist= cmp::max(max_x, max_y);
+        let mut k: u32 = 0;
+
+        match max_dist {
+            Some(dist) => {
+                let mut span = (2 as u32).pow(k) as isize;
+
+                while span < dist {
+                    k += 1;
+                    span = (2 as u32).pow(k) as isize;
+                }
+
+                self.root = self.world_to_qt_aux(cells, (0, 0), span);
+            },
+            None => {}
+        }
     }
 
     pub fn get_id(&self) -> NodeId {
