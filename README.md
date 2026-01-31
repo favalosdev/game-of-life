@@ -13,7 +13,5 @@ Controls:
 - I: Zoom-in
 - O: Zoom-out
 - P: Pause
-- E: Advance the game one generation. Can only be done when the game is paused
+- E: Advance the game 2\*\*k generations ahead. Can only be done when the game is paused
 - G: Display the grid in which the squares are rendered
-
-You can pause the game and manually set cells as alive by clicking the screen.
