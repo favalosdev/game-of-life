@@ -429,19 +429,20 @@ impl QuadTree {
             let mut points = list![];
             let new_span = span / 2;
 
-            // Cache node IDs to avoid repeated field access
             let (a_id, b_id, c_id, d_id) = (top.a, top.b, top.c, top.d);
 
-            // Check all quadrants and recurse only if non-empty
             if self.nodes[a_id].n > 0 {
                 points.append(&mut self.qt_to_world_aux(a_id, (c_x - new_span, c_y + new_span), new_span));
             }
+
             if self.nodes[b_id].n > 0 {
                 points.append(&mut self.qt_to_world_aux(b_id, (c_x + new_span, c_y + new_span), new_span));
             }
+
             if self.nodes[c_id].n > 0 {
                 points.append(&mut self.qt_to_world_aux(c_id, (c_x - new_span, c_y - new_span), new_span));
             }
+
             if self.nodes[d_id].n > 0 {
                 points.append(&mut self.qt_to_world_aux(d_id, (c_x + new_span, c_y - new_span), new_span));
             }
