@@ -3,6 +3,7 @@ use std::collections::{LinkedList, HashSet};
 use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
+use std::cmp;
 
 type NodeId = usize;
 
@@ -20,7 +21,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SIZE: isize = (2 as u32).pow(12) as isize;
+const SIZE: isize = (2 as u32).pow(20) as isize;
 
 impl Node {
     fn new(
@@ -56,11 +57,12 @@ pub struct QuadTree {
     root: NodeId,
     b: Vec<usize>,
     s: Vec<usize>,
-    caches: Caches
+    caches: Caches,
+    hash_life: bool
 }
 
 impl QuadTree {
-    pub fn new() -> Self {
+    pub fn new(hash_life: bool) -> Self {
         let mut nodes = Vec::with_capacity(5_000_000);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -73,7 +75,7 @@ impl QuadTree {
 
         let caches = Caches::new();
 
-        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches }
+        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches, hash_life }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -249,9 +251,10 @@ impl QuadTree {
         self.join(ad, bc, cb, da)
     }
 
-    pub fn advance(&mut self, step: usize) {
+    pub fn advance(&mut self) {
         let nested = self.centre(self.root);
-        self.root = self.successor(nested, step);
+        let j = if self.hash_life { &self.nodes[self.root].k - 2 } else { 0 };
+        self.root = self.successor(nested, j);
     }
 
     // Forward's m 2**j generations forward and returns a 2**(k-1) x 2**(k-1) successor.
@@ -272,6 +275,7 @@ impl QuadTree {
             // base case
             self.life_4x4(m)
         } else {
+            let step = cmp::min(j, level - 2);
             let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
             
             let a = &self.nodes[ma];
@@ -296,15 +300,15 @@ impl QuadTree {
             let j8 = self.join(cb, da, cd, dc);
             let j9 = self.join(da, db, dc, dd);
 
-            let c1 = self.successor(j1, j);
-            let c2 = self.successor(j2, j);
-            let c3 = self.successor(j3, j);
-            let c4 = self.successor(j4, j);
-            let c5 = self.successor(j5, j);
-            let c6 = self.successor(j6, j);
-            let c7 = self.successor(j7, j);
-            let c8 = self.successor(j8, j);
-            let c9 = self.successor(j9, j);
+            let c1 = self.successor(j1, step);
+            let c2 = self.successor(j2, step);
+            let c3 = self.successor(j3, step);
+            let c4 = self.successor(j4, step);
+            let c5 = self.successor(j5, step);
+            let c6 = self.successor(j6, step);
+            let c7 = self.successor(j7, step);
+            let c8 = self.successor(j8, step);
+            let c9 = self.successor(j9, step);
 
             if j < level - 2 {
                 let s1 = self.join(self.nodes[c1].d, self.nodes[c2].c, self.nodes[c4].b, self.nodes[c5].a);
@@ -318,10 +322,10 @@ impl QuadTree {
                 let s3 = self.join(c4, c5, c7, c8);
                 let s4 = self.join(c5, c6, c8, c9);
 
-                let ss1 = self.successor(s1, j);
-                let ss2 = self.successor(s2, j);
-                let ss3 = self.successor(s3, j);
-                let ss4 = self.successor(s4, j);
+                let ss1 = self.successor(s1, step);
+                let ss2 = self.successor(s2, step);
+                let ss3 = self.successor(s3, step);
+                let ss4 = self.successor(s4, step);
 
                 self.join(ss1, ss2, ss3, ss4)
             }
