@@ -20,7 +20,7 @@ const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
 
-const SIZE: isize = (2 as u32).pow(20) as isize;
+const SIZE: isize = (2 as u32).pow(12) as isize;
 
 impl Node {
     fn new(
@@ -61,7 +61,7 @@ pub struct QuadTree {
 
 impl QuadTree {
     pub fn new() -> Self {
-        let mut nodes = Vec::with_capacity(20_000_000);
+        let mut nodes = Vec::with_capacity(5_000_000);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
         let dead = Node::new(0, 0, VOID, VOID, VOID, VOID);
