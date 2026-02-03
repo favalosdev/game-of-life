@@ -48,7 +48,7 @@ fn main() {
     let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
 
     let args = Args::parse();
-    let mut quad_tree= QuadTree::new(args.hash_life);
+    let mut quad_tree= QuadTree::new(if args.hash_life { None } else { Some(0) });
     let mut camera = Camera::new(ZOOM, 0, 0);
 
     let file = match args.pattern_path {
@@ -86,7 +86,7 @@ fn main() {
 
             if !input_state.is_paused {
                 quad_tree.advance();
-                feedback.generation += 1;
+                // feedback.generation += (2 as u32).pow(quad_tree.step as u32);
             }
         }
 

@@ -90,9 +90,9 @@ fn draw_feedback(canvas: &mut Canvas<Window>, feedback: &Feedback) {
 
     let mx = feedback.mouse_coords.x;
     let my = feedback.mouse_coords.y;
-    let generation = feedback.generation;
     let cell_count = feedback.cell_count;
-    let text = format!("cells: {cell_count}, x: {mx:.2}, y: {my:.2}, gen: {generation}");
+
+    let text = format!("cells: {cell_count}, x: {mx:.2}, y: {my:.2}");
 
     // render a surface, and convert it to a texture bound to the canvas
     let surface = font

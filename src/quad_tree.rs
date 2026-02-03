@@ -4,6 +4,7 @@ use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
 use std::cmp;
+use crate::config::{QT_DIM, QT_SIZE};
 
 type NodeId = usize;
 
@@ -20,8 +21,6 @@ struct Node {
 const VOID: usize = 0;
 const DEAD: usize = 1;
 const ALIVE: usize = 2;
-
-const SIZE: isize = (2 as u32).pow(20) as isize;
 
 impl Node {
     fn new(
@@ -58,11 +57,11 @@ pub struct QuadTree {
     b: Vec<usize>,
     s: Vec<usize>,
     caches: Caches,
-    hash_life: bool
+    pub step: usize
 }
 
 impl QuadTree {
-    pub fn new(hash_life: bool) -> Self {
+    pub fn new(step: Option<usize>) -> Self {
         let mut nodes = Vec::with_capacity(5_000_000);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -75,7 +74,7 @@ impl QuadTree {
 
         let caches = Caches::new();
 
-        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches, hash_life }
+        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches, step: step.unwrap_or((QT_DIM - 2) as usize) }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -103,7 +102,7 @@ impl QuadTree {
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(cells, (0,0), SIZE / 2)
+        self.root = self.world_to_qt_aux(cells, (0,0), QT_SIZE / 2)
     }
 
     pub fn get_id(&self) -> NodeId {
@@ -253,8 +252,7 @@ impl QuadTree {
 
     pub fn advance(&mut self) {
         let nested = self.centre(self.root);
-        let j = if self.hash_life { &self.nodes[self.root].k - 2 } else { 0 };
-        self.root = self.successor(nested, j);
+        self.root = self.successor(nested, self.step);
     }
 
     // Forward's m 2**j generations forward and returns a 2**(k-1) x 2**(k-1) successor.

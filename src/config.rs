@@ -11,3 +11,5 @@ pub const CAMERA_DELTA: i32 = 2;
 pub const GRID_COLOR: Color = Color::RGB(64, 64, 64);
 pub const CELL_COLOR: Color = Color::RGB(0, 255, 0);
 pub const FEEDBACK_COLOR: Color = Color::RGB(255, 255, 255);
+pub const QT_DIM: u32 = 20;
+pub const QT_SIZE: isize = (2 as u32).pow(QT_DIM) as isize;
