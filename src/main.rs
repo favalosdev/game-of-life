@@ -86,7 +86,6 @@ fn main() {
 
             if !input_state.is_paused {
                 quad_tree.advance();
-                // feedback.generation += (2 as u32).pow(quad_tree.step as u32);
             }
         }
 
