@@ -359,12 +359,15 @@ impl QuadTree {
             if top.a == ALIVE {
                 points.push_back((c_x - 1, c_y));
             }
+
             if top.b == ALIVE {
                 points.push_back((c_x, c_y));
             }
+
             if top.c == ALIVE {
                 points.push_back((c_x - 1, c_y - 1));
             }
+
             if top.d == ALIVE {
                 points.push_back((c_x, c_y - 1));
             }
