@@ -113,7 +113,7 @@ impl QuadTree {
     fn world_to_qt_aux(
         &mut self,
         cells: LinkedList<(isize, isize)>,
-        centre: (isize, isize),
+        (c_x, c_y): (isize, isize),
         span: isize
     ) -> NodeId {
         if cells.is_empty() {
@@ -121,15 +121,13 @@ impl QuadTree {
             return self.zero(k);
         }
 
-        let (c_x, c_y) = centre;
-
         if span == 1 {
             let lookup = cells.iter().collect::<HashSet<_>>();
 
-            let a_coords = (c_x-1, c_y);
+            let a_coords = (c_x - 1, c_y);
             let b_coords = (c_x, c_y);
-            let c_coords = (c_x-1, c_y-1);
-            let d_coords = (c_x, c_y-1);
+            let c_coords = (c_x - 1, c_y-1);
+            let d_coords = (c_x, c_y - 1);
 
             let a = if lookup.contains(&a_coords) { ALIVE } else { DEAD };
             let b = if lookup.contains(&b_coords) { ALIVE } else { DEAD };
@@ -341,7 +339,7 @@ impl QuadTree {
     fn qt_to_world_aux(
         &self,
         root: NodeId,
-        centre: (isize, isize),
+        (c_x, c_y): (isize, isize),
         span: isize
     ) -> LinkedList<(isize, isize)> {
         let top = &self.nodes[root];
@@ -350,8 +348,6 @@ impl QuadTree {
         if top.n == 0 {
             return list![];
         }
-
-        let (c_x, c_y) = centre;
 
         if top.k == 1 {
             let mut points = list![];
