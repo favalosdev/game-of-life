@@ -31,6 +31,7 @@ pub fn handle_input(
 ) -> bool {
     let mouse_state: MouseState = event_pump.mouse_state();
     let (x_w, y_w) = camera.from_screen_coords(mouse_state.x() - OFFSET_X, mouse_state.y() - OFFSET_Y);
+
     feedback.mouse_coords = MouseCoords { x: x_w, y: -y_w };
     feedback.cell_count = quad_tree.cell_count();
 
