@@ -31,7 +31,7 @@ struct Args {
     #[arg(short = 'p', long)]
     pattern_path: Option<String>,
     // Whether the code should run with the HashLife optimization or not
-    #[arg(long, default_value_t=true)]
+    #[arg(long, default_value_t=false)]
     hash_life: bool 
 }
 
