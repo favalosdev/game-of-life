@@ -31,10 +31,10 @@ struct Args {
     #[arg(short = 'p', long)]
     pattern_path: Option<String>,
     // Whether the code should run with the HashLife optimization or not
-    #[arg(long, default_value_t=false)]
+    #[arg(long, default_value_t=true)]
     hash_life: bool 
 }
-    
+
 fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -49,7 +49,7 @@ fn main() {
 
     let args = Args::parse();
     let mut quad_tree= QuadTree::new(if args.hash_life { None } else { Some(0) });
-    let mut camera = Camera::new(ZOOM, 0, 0);
+    let mut camera = Camera::new(ZOOM, 0.0, 0.0);
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),

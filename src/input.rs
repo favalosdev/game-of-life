@@ -31,6 +31,7 @@ pub fn handle_input(
 ) -> bool {
     let mouse_state: MouseState = event_pump.mouse_state();
     let (x_w, y_w) = camera.from_screen_coords(mouse_state.x() - OFFSET_X, mouse_state.y() - OFFSET_Y);
+    let zoom = camera.zoom;
 
     feedback.mouse_coords = MouseCoords { x: x_w, y: -y_w };
     feedback.cell_count = quad_tree.cell_count();
@@ -42,25 +43,23 @@ pub fn handle_input(
                 return true; // Signal to quit
             },
             Event::KeyDown { scancode: Some(Scancode::W), .. } => {
-                camera.y -= CAMERA_DELTA;
+                camera.y -= CAMERA_DELTA / zoom;
             },
             Event::KeyDown { scancode: Some(Scancode::A), .. } => {
-                camera.x -= CAMERA_DELTA;
+                camera.x -= CAMERA_DELTA / zoom;
             },
             Event::KeyDown { scancode: Some(Scancode::S), .. } => {
-                camera.y += CAMERA_DELTA;
+                camera.y += CAMERA_DELTA / zoom;
             },
             Event::KeyDown { scancode: Some(Scancode::D), .. } => {
-                camera.x += CAMERA_DELTA;
+                camera.x += CAMERA_DELTA / zoom;
             },
-            // Zoom in
             Event::KeyDown { scancode: Some(Scancode::I), .. } => {
-                camera.zoom += 1;
+                camera.zoom += zoom * 0.1;
             },
-            // Zoom out
             Event::KeyDown { scancode: Some(Scancode::O), .. } => {
-                if camera.zoom > 1 {
-                    camera.zoom -= 1;
+                if zoom > 0.0 {
+                    camera.zoom -= zoom * 0.1;
                 }
             },
             Event::KeyDown { scancode: Some(Scancode::P), .. } => {
@@ -74,20 +73,6 @@ pub fn handle_input(
             Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                 input_state.show_grid = !input_state.show_grid;
             },
-            /*
-            Event::MouseButtonDown { x, y, .. } => {
-                if input_state.is_paused {
-                    let (x_w, y_w) = camera.from_screen_coords(x - OFFSET_X, y - OFFSET_Y);
-                    let coords = (x_w.floor() as isize, -(y_w.floor()) as isize);
-
-                    if grid.is_alive(coords) {
-                        grid.cells.remove(&coords);
-                    } else {
-                        grid.cells.insert(coords);
-                    }
-                }
-            }
-            */
             _ => {}
         }
     }
