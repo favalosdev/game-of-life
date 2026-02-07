@@ -268,7 +268,7 @@ impl QuadTree {
         let next = if m_node.n == 0 {
             m_node.a
         } else if level == 2 {
-            // base case
+            // Base case. It doesn't need to be memoized
             self.life_4x4(m)
         } else {
             let step = cmp::min(j, level - 2);
@@ -344,7 +344,6 @@ impl QuadTree {
     ) -> LinkedList<(isize, isize)> {
         let top = &self.nodes[root];
 
-        // Early return for empty nodes
         if top.n == 0 {
             return list![];
         }

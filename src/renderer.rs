@@ -70,7 +70,6 @@ fn draw_grid(canvas: &mut Canvas<Window>, camera: &Camera, min_x_s: i32, min_y_s
         x += square_width;
     }
 
-    // Draw Horizontal Lines
     let mut y = start_y;
 
     while y <= WINDOW_HEIGHT as i32 {
@@ -94,7 +93,7 @@ fn draw_feedback(canvas: &mut Canvas<Window>, feedback: &Feedback) {
 
     let text = format!("cells: {cell_count}, x: {mx:.2}, y: {my:.2}");
 
-    // render a surface, and convert it to a texture bound to the canvas
+    // Render a surface, and convert it to a texture bound to the canvas
     let surface = font
         .render(&text)
         .blended(FEEDBACK_COLOR)

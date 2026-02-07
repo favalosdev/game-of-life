@@ -40,7 +40,7 @@ pub fn handle_input(
         match event {
             Event::Quit {..} |
             Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                return true; // Signal to quit
+                return true;
             },
             Event::KeyDown { scancode: Some(Scancode::W), .. } => {
                 camera.y -= CAMERA_DELTA / zoom;
