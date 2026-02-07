@@ -1,5 +1,4 @@
 extern crate sdl2;
-extern crate memoize;
 
 use sdl2::render::Canvas;
 use sdl2::video::Window;
