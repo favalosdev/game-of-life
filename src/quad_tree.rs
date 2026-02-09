@@ -196,7 +196,7 @@ impl QuadTree {
         let result = if k == 0 {
             DEAD
         } else {
-            let z= self.zero(k-1);
+            let z = self.zero(k-1);
             self.join(z, z, z, z)
         };
 
