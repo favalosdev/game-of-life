@@ -167,7 +167,7 @@ impl QuadTree {
         let sw = self.world_to_qt_aux(sw_cells, (c_x - new_span, c_y - new_span), new_span);
         let se = self.world_to_qt_aux(se_cells, (c_x + new_span, c_y - new_span), new_span);
 
-        return self.join(nw, ne, sw, se);
+        self.join(nw, ne, sw, se)
     }
 
     fn new_node(&mut self, node: Node) -> NodeId {
