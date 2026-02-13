@@ -22,7 +22,7 @@ use config::*;
 use feedback::Feedback;
 use renderer::draw_all;
 use input::{handle_input, InputState};
-use std::env;
+// use std::env;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -56,7 +56,7 @@ fn main() {
         None => File::open("assets/patterns/gosperglidergun.rle").unwrap(),
     };
 
-    env::set_var("RUST_BACKTRACE", "1");
+    // env::set_var("RUST_BACKTRACE", "1");
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
 
