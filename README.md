@@ -1,6 +1,6 @@
 # game-of-life
 
-Very simple implementation of Conway's Game of Life.
+Inspired and adapted from this [source](https://johnhw.github.io/hashlife/index.md.html)
 
 Run `cargo run`and you are done.
 
