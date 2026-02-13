@@ -48,12 +48,12 @@ fn main() {
     let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
 
     let args = Args::parse();
-    let mut quad_tree= QuadTree::new(if args.hash_life { None } else { Some(0) });
+    let mut quad_tree= QuadTree::new();
     let mut camera = Camera::new(ZOOM, 0.0, 0.0);
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),
-        None => File::open("assets/patterns/otcametapixel.rle").unwrap(),
+        None => File::open("assets/patterns/gosperglidergun.rle").unwrap(),
     };
 
     env::set_var("RUST_BACKTRACE", "1");
@@ -87,7 +87,7 @@ fn main() {
             draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
 
             if !input_state.is_paused {
-                quad_tree.advance(10);
+                quad_tree.advance(STEP);
             }
         }
 

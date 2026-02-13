@@ -4,7 +4,7 @@ use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
 use std::cmp;
-use crate::config::{QT_DIM, QT_SIZE};
+use crate::config::{QT_SIZE};
 
 type NodeId = usize;
 
@@ -38,7 +38,7 @@ impl Node {
 struct Caches {
     join: FxHashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
     zero: FxHashMap<usize, NodeId>,
-    successor: FxHashMap<NodeId, NodeId>
+    successor: FxHashMap<(NodeId, Option<usize>), NodeId>
 }
 
 impl Caches {
@@ -57,11 +57,10 @@ pub struct QuadTree {
     b: Vec<usize>,
     s: Vec<usize>,
     caches: Caches,
-    step: usize
 }
 
 impl QuadTree {
-    pub fn new(step: Option<usize>) -> Self {
+    pub fn new() -> Self {
         let mut nodes = Vec::with_capacity(5_000_000);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -74,7 +73,7 @@ impl QuadTree {
 
         let caches = Caches::new();
 
-        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches, step: step.unwrap_or((QT_DIM - 2) as usize) }
+        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -258,20 +257,18 @@ impl QuadTree {
         }
 
         let mut nested = root;
-
-        // Perform binary expansion
-        let mut bits: Vec<usize> = vec![];
+        let mut index = 0;
 
         while n > 0 {
-            bits.push(n & 1);
-            n = n >> 1;
-            nested = self.centre(nested);
-        }
+            let bit = n & 1;
 
-        for (index, bit) in bits.iter().enumerate() {
-            if *bit == 1 {
-                nested = self.successor(nested, index);
+            if bit == 1 {
+                nested = self.centre(nested);
+                nested = self.successor(nested, Some(index));
             }
+
+            n = n >> 1;
+            index += 1;
         }
 
         nested
@@ -280,10 +277,10 @@ impl QuadTree {
     // Forward's m 2**j generations forward and returns a 2**(k-1) x 2**(k-1) successor.
     // The default value of j is k-2.
 
-    fn successor(&mut self, m: NodeId, j: usize) -> NodeId {
+    fn successor(&mut self, m: NodeId, j: Option<usize>) -> NodeId {
         let m_node = &self.nodes[m];
 
-        if let Some(id) = self.caches.successor.get(&m) {
+        if let Some(id) = self.caches.successor.get(&(m, j)) {
             return *id;
         }
 
@@ -295,7 +292,8 @@ impl QuadTree {
             // Base case. It doesn't need to be memoized
             self.life_4x4(m)
         } else {
-            let step = cmp::min(j, level - 2);
+            let step = Some(j.map_or(level-2, |j| cmp::min(j, level-2)));
+            
             let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
             
             let a = &self.nodes[ma];
@@ -330,7 +328,7 @@ impl QuadTree {
             let c8 = self.successor(j8, step);
             let c9 = self.successor(j9, step);
 
-            if j < level - 2 {
+            if step.unwrap() < level - 2 {
                 let s1 = self.join(self.nodes[c1].d, self.nodes[c2].c, self.nodes[c4].b, self.nodes[c5].a);
                 let s2 = self.join(self.nodes[c2].d, self.nodes[c3].c, self.nodes[c5].b, self.nodes[c6].a);
                 let s3 = self.join(self.nodes[c4].d, self.nodes[c5].c, self.nodes[c7].b, self.nodes[c8].a);
@@ -350,7 +348,7 @@ impl QuadTree {
                 self.join(ss1, ss2, ss3, ss4)
             }
         };
-        self.caches.successor.insert(m, next);
+        self.caches.successor.insert((m, j), next);
         next
     }
 
