@@ -24,8 +24,8 @@ const ALIVE: usize = 2;
 
 impl Node {
     fn new(
-        n: usize,
-        k: usize,
+        n: usize, // Number of alive cells within the node
+        k: usize, // Size (2**k x 2**k) of the quadtree
         a: NodeId,
         b: NodeId,
         c: NodeId,
@@ -73,7 +73,13 @@ impl QuadTree {
 
         let caches = Caches::new();
 
-        QuadTree { nodes, root: DEAD, b: vec![3], s: vec![2], caches }
+        QuadTree {
+            nodes,
+            root: DEAD,
+            b: vec![3],
+            s: vec![2],
+            caches
+        }
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
