@@ -38,7 +38,7 @@ impl Node {
 struct Caches {
     join: FxHashMap<(NodeId, NodeId, NodeId, NodeId), NodeId>,
     zero: FxHashMap<usize, NodeId>,
-    successor: FxHashMap<NodeId, NodeId>,
+    successor: FxHashMap<NodeId, NodeId>
 }
 
 impl Caches {
@@ -46,7 +46,7 @@ impl Caches {
         Caches {
             join: FxHashMap::default(),
             zero: FxHashMap::default(),
-            successor: FxHashMap::default(),
+            successor: FxHashMap::default()
         }
     }
 }
@@ -248,9 +248,33 @@ impl QuadTree {
         self.join(ad, bc, cb, da)
     }
 
-    pub fn advance(&mut self) {
-        let nested = self.centre(self.root);
-        self.root = self.successor(nested, self.step);
+    pub fn advance(&mut self, n: usize) {
+        self.root = self.advance_aux(self.root, n);
+    }
+
+    fn advance_aux(&mut self, root: NodeId, mut n: usize) -> NodeId {
+        if n == 0 {
+            return root;
+        }
+
+        let mut nested = root;
+
+        // Perform binary expansion
+        let mut bits: Vec<usize> = vec![];
+
+        while n > 0 {
+            bits.push(n & 1);
+            n = n >> 1;
+            nested = self.centre(nested);
+        }
+
+        for (index, bit) in bits.iter().enumerate() {
+            if *bit == 1 {
+                nested = self.successor(nested, index);
+            }
+        }
+
+        nested
     }
 
     // Forward's m 2**j generations forward and returns a 2**(k-1) x 2**(k-1) successor.

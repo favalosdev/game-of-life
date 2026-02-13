@@ -111,7 +111,7 @@ fn draw_feedback(canvas: &mut Canvas<Window>, feedback: &Feedback) {
 }
 
 pub fn draw_all(canvas: &mut Canvas<Window>, cells: &LinkedList<(isize, isize)>, camera: &Camera, feedback: &Feedback, show_grid: bool) {
-    canvas.set_draw_color(Color::RGB(0,0,0));
+    canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
     draw_squares(canvas, cells, camera, show_grid);
     draw_feedback(canvas, feedback);

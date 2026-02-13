@@ -22,6 +22,7 @@ use config::*;
 use feedback::Feedback;
 use renderer::draw_all;
 use input::{handle_input, InputState};
+use std::env;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -55,6 +56,8 @@ fn main() {
         None => File::open("assets/patterns/otcametapixel.rle").unwrap(),
     };
 
+    env::set_var("RUST_BACKTRACE", "1");
+
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
 
     let mut feedback = Feedback::new();
@@ -84,7 +87,7 @@ fn main() {
             draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
 
             if !input_state.is_paused {
-                quad_tree.advance();
+                quad_tree.advance(10);
             }
         }
 
