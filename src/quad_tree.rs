@@ -25,7 +25,7 @@ const ALIVE: usize = 2;
 impl Node {
     fn new(
         n: usize, // Number of alive cells within the node
-        k: usize, // Size (2**k x 2**k) of the quadtree
+        k: usize, // Size of the quadtree (2**k x 2**k)
         a: NodeId,
         b: NodeId,
         c: NodeId,
@@ -148,19 +148,19 @@ impl QuadTree {
         let mut sw_cells = list![];
 
         for (x, y) in cells.iter() {
-            let (x,y) = (*x, *y);
+            let p = (*x, *y);
 
-            if x >= c_x {
-                if y >= c_y {
-                    ne_cells.push_back((x, y));
+            if p.0 >= c_x {
+                if p.1 >= c_y {
+                    ne_cells.push_back(p);
                 } else {
-                    se_cells.push_back((x, y));
+                    se_cells.push_back(p);
                 }
             } else {
-                if y >= c_y {
-                    nw_cells.push_back((x, y));
+                if p.1 >= c_y {
+                    nw_cells.push_back(p);
                 } else {
-                    sw_cells.push_back((x, y));
+                    sw_cells.push_back(p);
                 }
             }
         }

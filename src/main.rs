@@ -74,6 +74,7 @@ fn main() {
 
     'running: loop {
         let now = Instant::now();
+
         if now.duration_since(last_game_tick) >= game_interval {
             last_game_tick = now;
 
