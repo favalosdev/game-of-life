@@ -4,7 +4,7 @@ Inspired and adapted from this [source](https://johnhw.github.io/hashlife/index.
 
 Run `cargo run`and you are done.
 
-Controls:
+## Controls
 
 - W: Move the camera upwards
 - A: Move the camera to the left
