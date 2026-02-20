@@ -1,8 +1,8 @@
 # game-of-life
 
-Inspired and adapted from this [source](https://johnhw.github.io/hashlife/index.md.html)
+Adapted [source](https://johnhw.github.io/hashlife/index.md.html)
 
-Run `cargo run`and you are done.
+Run `cargo run` and you are done.
 
 ## Controls
 
