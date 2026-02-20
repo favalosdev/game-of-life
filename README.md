@@ -1,6 +1,6 @@
 # game-of-life
 
-Adapted [source](https://johnhw.github.io/hashlife/index.md.html)
+Adapted from this [source](https://johnhw.github.io/hashlife/index.md.html).
 
 Run `cargo run` and you are done.
 
