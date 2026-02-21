@@ -13,4 +13,4 @@ pub const CELL_COLOR: Color = Color::RGB(0, 255, 0);
 pub const FEEDBACK_COLOR: Color = Color::RGB(255, 255, 255);
 pub const QT_DIM: u32 = 15;
 pub const QT_SIZE: isize = (2 as u32).pow(QT_DIM) as isize;
-pub const STEP: usize = 10;
+pub const STEP: usize = 1;
