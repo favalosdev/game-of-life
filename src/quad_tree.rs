@@ -131,7 +131,7 @@ impl QuadTree {
 
             let a_coords = (c_x - 1, c_y);
             let b_coords = (c_x, c_y);
-            let c_coords = (c_x - 1, c_y-1);
+            let c_coords = (c_x - 1, c_y - 1);
             let d_coords = (c_x, c_y - 1);
 
             let a = if lookup.contains(&a_coords) { ALIVE } else { DEAD };
@@ -227,7 +227,7 @@ impl QuadTree {
             outer += &self.nodes[id].n;
         }
 
-        if self.nodes[e].n == 1 && self.s.contains(&outer) || self.b.contains(&outer) {
+        if (self.nodes[e].n == 1 && self.s.contains(&outer)) || self.b.contains(&outer) {
             ALIVE
         } else {
             DEAD
@@ -266,9 +266,7 @@ impl QuadTree {
         let mut index = 0;
 
         while n > 0 {
-            let bit = n & 1;
-
-            if bit == 1 {
+            if (n & 1) == 1 {
                 nested = self.centre(nested);
                 nested = self.successor(nested, Some(index));
             }
@@ -298,7 +296,7 @@ impl QuadTree {
             // Base case. It doesn't need to be memoized
             self.life_4x4(m)
         } else {
-            let step = Some(j.map_or(level-2, |j| cmp::min(j, level-2)));
+            let step = Some(j.map_or(level - 2, |j| cmp::min(j, level - 2)));
             
             let (ma, mb, mc, md) = (m_node.a, m_node.b, m_node.c, m_node.d);
             
