@@ -359,64 +359,45 @@ impl QuadTree {
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
         let k = self.nodes[self.root].k;
         let size = (2 as usize).pow(k as u32) as isize;
-        self.qt_to_world_aux(self.root, (0, 0), size / 2)
+        let mut points: LinkedList<(isize, isize)> = list![];
+        self.qt_to_world_aux(self.root, (0, 0), size / 2, &mut points);
+        points
     }
 
     fn qt_to_world_aux(
         &self,
         root: NodeId,
         (c_x, c_y): (isize, isize),
-        span: isize
-    ) -> LinkedList<(isize, isize)> {
+        span: isize,
+        points: &mut LinkedList<(isize, isize)>
+    ) {
         let top = &self.nodes[root];
 
-        if top.n == 0 {
-            return list![];
-        }
+        if top.n > 0 {
+            if top.k == 1 {
+                if top.a == ALIVE {
+                    points.push_back((c_x - 1, c_y));
+                }
 
-        if top.k == 1 {
-            let mut points = list![];
+                if top.b == ALIVE {
+                    points.push_back((c_x, c_y));
+                }
 
-            if top.a == ALIVE {
-                points.push_back((c_x - 1, c_y));
+                if top.c == ALIVE {
+                    points.push_back((c_x - 1, c_y - 1));
+                }
+
+                if top.d == ALIVE {
+                    points.push_back((c_x, c_y - 1));
+                }
+            } else {
+                let new_span = span / 2;
+                let (a_id, b_id, c_id, d_id) = (top.a, top.b, top.c, top.d);
+                self.qt_to_world_aux(a_id, (c_x - new_span, c_y + new_span), new_span, points);
+                self.qt_to_world_aux(b_id, (c_x + new_span, c_y + new_span), new_span, points);
+                self.qt_to_world_aux(c_id, (c_x - new_span, c_y - new_span), new_span, points);
+                self.qt_to_world_aux(d_id, (c_x + new_span, c_y - new_span), new_span, points);
             }
-
-            if top.b == ALIVE {
-                points.push_back((c_x, c_y));
-            }
-
-            if top.c == ALIVE {
-                points.push_back((c_x - 1, c_y - 1));
-            }
-
-            if top.d == ALIVE {
-                points.push_back((c_x, c_y - 1));
-            }
-
-            points
-        } else {
-            let mut points = list![];
-            let new_span = span / 2;
-
-            let (a_id, b_id, c_id, d_id) = (top.a, top.b, top.c, top.d);
-
-            if self.nodes[a_id].n > 0 {
-                points.append(&mut self.qt_to_world_aux(a_id, (c_x - new_span, c_y + new_span), new_span));
-            }
-
-            if self.nodes[b_id].n > 0 {
-                points.append(&mut self.qt_to_world_aux(b_id, (c_x + new_span, c_y + new_span), new_span));
-            }
-
-            if self.nodes[c_id].n > 0 {
-                points.append(&mut self.qt_to_world_aux(c_id, (c_x - new_span, c_y - new_span), new_span));
-            }
-
-            if self.nodes[d_id].n > 0 {
-                points.append(&mut self.qt_to_world_aux(d_id, (c_x + new_span, c_y - new_span), new_span));
-            }
-
-            points
         }
     }
 }
