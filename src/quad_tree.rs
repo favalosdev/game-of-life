@@ -282,11 +282,11 @@ impl QuadTree {
     // The default value of j is k-2.
 
     fn successor(&mut self, m: NodeId, j: Option<usize>) -> NodeId {
-        let m_node = &self.nodes[m];
-
         if let Some(id) = self.caches.successor.get(&(m, j)) {
             return *id;
         }
+
+        let m_node = &self.nodes[m];
 
         let level = m_node.k;
 
@@ -392,11 +392,10 @@ impl QuadTree {
                 }
             } else {
                 let new_span = span / 2;
-                let (a_id, b_id, c_id, d_id) = (top.a, top.b, top.c, top.d);
-                self.qt_to_world_aux(a_id, (c_x - new_span, c_y + new_span), new_span, points);
-                self.qt_to_world_aux(b_id, (c_x + new_span, c_y + new_span), new_span, points);
-                self.qt_to_world_aux(c_id, (c_x - new_span, c_y - new_span), new_span, points);
-                self.qt_to_world_aux(d_id, (c_x + new_span, c_y - new_span), new_span, points);
+                self.qt_to_world_aux(top.a, (c_x - new_span, c_y + new_span), new_span, points);
+                self.qt_to_world_aux(top.b, (c_x + new_span, c_y + new_span), new_span, points);
+                self.qt_to_world_aux(top.c, (c_x - new_span, c_y - new_span), new_span, points);
+                self.qt_to_world_aux(top.d, (c_x + new_span, c_y - new_span), new_span, points);
             }
         }
     }
