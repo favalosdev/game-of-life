@@ -4,7 +4,7 @@ use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
 use std::cmp;
-use crate::config::{QT_DIM, QT_SIZE};
+use crate::config::QT_DIM;
 
 type NodeId = usize;
 
