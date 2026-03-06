@@ -70,9 +70,11 @@ pub fn handle_input(
                     quad_tree.advance(STEP);
                 }
             },
+            /*
             Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                 input_state.show_grid = !input_state.show_grid;
             },
+            */
             _ => {}
         }
     }
