@@ -47,9 +47,11 @@ fn draw_squares(canvas: &mut Canvas<Window>, cells: &LinkedList<(isize, isize)>,
         }
     }
 
+    /*
     if show_grid {
         draw_grid(canvas, camera, min_x_s, min_y_s)
     }
+    */
 }
 
 fn draw_grid(canvas: &mut Canvas<Window>, camera: &Camera, min_x_s: f32, min_y_s: f32) {
