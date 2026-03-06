@@ -368,31 +368,31 @@ impl QuadTree {
         (c_x, c_y): (isize, isize),
         points: &mut LinkedList<(isize, isize)>
     ) {
-        let top = &self.nodes[root];
+        let r_node= &self.nodes[root];
 
-        if top.n > 0 {
-            if top.k == 1 {
-                if top.a == ALIVE {
+        if r_node.n > 0 {
+            if r_node.k == 1 {
+                if r_node.a == ALIVE {
                     points.push_back((c_x - 1, c_y));
                 }
 
-                if top.b == ALIVE {
+                if r_node.b == ALIVE {
                     points.push_back((c_x, c_y));
                 }
 
-                if top.c == ALIVE {
+                if r_node.c == ALIVE {
                     points.push_back((c_x - 1, c_y - 1));
                 }
 
-                if top.d == ALIVE {
+                if r_node.d == ALIVE {
                     points.push_back((c_x, c_y - 1));
                 }
             } else {
-                let span = 2_isize.pow((top.k / 4) as u32);
-                self.qt_to_world_aux(top.a, (c_x - span, c_y + span), points);
-                self.qt_to_world_aux(top.b, (c_x + span, c_y + span), points);
-                self.qt_to_world_aux(top.c, (c_x - span, c_y - span), points);
-                self.qt_to_world_aux(top.d, (c_x + span, c_y - span), points);
+                let offset = 2_isize.pow((r_node.k - 2) as u32);
+                self.qt_to_world_aux(r_node.a, (c_x - offset, c_y + offset), points);
+                self.qt_to_world_aux(r_node.b, (c_x + offset, c_y + offset), points);
+                self.qt_to_world_aux(r_node.c, (c_x - offset, c_y - offset), points);
+                self.qt_to_world_aux(r_node.d, (c_x + offset, c_y - offset), points);
             }
         }
     }
