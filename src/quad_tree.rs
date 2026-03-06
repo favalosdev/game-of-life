@@ -371,7 +371,9 @@ impl QuadTree {
         let r_node= &self.nodes[root];
 
         if r_node.n > 0 {
-            if r_node.k == 1 {
+            if r_node.k == 0 {
+                points.push_back((0, 0));
+            } else if r_node.k == 1 {
                 if r_node.a == ALIVE {
                     points.push_back((c_x - 1, c_y));
                 }
