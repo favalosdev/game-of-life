@@ -4,7 +4,7 @@ use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
 use std::cmp;
-use crate::config::QT_SIZE;
+use crate::config::{QT_DIM, QT_SIZE};
 
 type NodeId = usize;
 
@@ -107,7 +107,7 @@ impl QuadTree {
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(cells, (0,0), QT_SIZE / 2)
+        self.root = self.world_to_qt_aux(cells, (0,0), QT_DIM as usize)
     }
 
     pub fn get_id(&self) -> NodeId {
@@ -119,14 +119,11 @@ impl QuadTree {
         &mut self,
         cells: LinkedList<(isize, isize)>,
         (c_x, c_y): (isize, isize),
-        span: isize
+        level: usize 
     ) -> NodeId {
         if cells.is_empty() {
-            let k = (2 * span).ilog2() as usize;
-            return self.zero(k);
-        }
-
-        if span == 1 {
+            self.zero(level)
+        } else if level == 1 {
             let lookup = cells.iter().collect::<HashSet<_>>();
 
             let a_coords = (c_x - 1, c_y);
@@ -139,40 +136,37 @@ impl QuadTree {
             let c = if lookup.contains(&c_coords) { ALIVE } else { DEAD };
             let d = if lookup.contains(&d_coords) { ALIVE } else { DEAD };
 
-            return self.join(a, b, c, d);
-        }
+            self.join(a, b, c, d)
+        } else {
+            let mut ne_cells = list![];
+            let mut nw_cells = list![];
+            let mut se_cells = list![];
+            let mut sw_cells = list![];
 
-        let mut ne_cells = list![];
-        let mut nw_cells = list![];
-        let mut se_cells = list![];
-        let mut sw_cells = list![];
+            for (x, y) in cells.iter() {
+                let p = (*x, *y);
 
-        for (x, y) in cells.iter() {
-            let p = (*x, *y);
-
-            if p.0 >= c_x {
-                if p.1 >= c_y {
-                    ne_cells.push_back(p);
+                if p.0 >= c_x {
+                    if p.1 >= c_y {
+                        ne_cells.push_back(p);
+                    } else {
+                        se_cells.push_back(p);
+                    }
                 } else {
-                    se_cells.push_back(p);
-                }
-            } else {
-                if p.1 >= c_y {
-                    nw_cells.push_back(p);
-                } else {
-                    sw_cells.push_back(p);
+                    if p.1 >= c_y {
+                        nw_cells.push_back(p);
+                    } else {
+                        sw_cells.push_back(p);
+                    }
                 }
             }
+            let offset = 2_isize.pow((level - 2) as u32);
+            let nw = self.world_to_qt_aux(nw_cells, (c_x - offset, c_y + offset), level - 1);
+            let ne = self.world_to_qt_aux(ne_cells, (c_x + offset, c_y + offset), level - 1);
+            let sw = self.world_to_qt_aux(sw_cells, (c_x - offset, c_y - offset), level - 1);
+            let se = self.world_to_qt_aux(se_cells, (c_x + offset, c_y - offset), level - 1);
+            self.join(nw, ne, sw, se)
         }
-
-        let new_span = span / 2;
-
-        let nw = self.world_to_qt_aux(nw_cells, (c_x - new_span, c_y + new_span), new_span);
-        let ne = self.world_to_qt_aux(ne_cells, (c_x + new_span, c_y + new_span), new_span);
-        let sw = self.world_to_qt_aux(sw_cells, (c_x - new_span, c_y - new_span), new_span);
-        let se = self.world_to_qt_aux(se_cells, (c_x + new_span, c_y - new_span), new_span);
-
-        self.join(nw, ne, sw, se)
     }
 
     fn new_node(&mut self, node: Node) -> NodeId {
