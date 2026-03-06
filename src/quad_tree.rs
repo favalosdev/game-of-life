@@ -357,7 +357,7 @@ impl QuadTree {
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
-        let mut points: LinkedList<(isize, isize)> = list![];
+        let mut points = list![];
         self.qt_to_world_aux(self.root, (0, 0), &mut points);
         points
     }
