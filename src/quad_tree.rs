@@ -357,10 +357,8 @@ impl QuadTree {
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
-        let k = self.nodes[self.root].k;
-        let size = (2 as usize).pow(k as u32) as isize;
         let mut points: LinkedList<(isize, isize)> = list![];
-        self.qt_to_world_aux(self.root, (0, 0), size / 2, &mut points);
+        self.qt_to_world_aux(self.root, (0, 0), &mut points);
         points
     }
 
@@ -368,7 +366,6 @@ impl QuadTree {
         &self,
         root: NodeId,
         (c_x, c_y): (isize, isize),
-        span: isize,
         points: &mut LinkedList<(isize, isize)>
     ) {
         let top = &self.nodes[root];
@@ -391,11 +388,11 @@ impl QuadTree {
                     points.push_back((c_x, c_y - 1));
                 }
             } else {
-                let new_span = span / 2;
-                self.qt_to_world_aux(top.a, (c_x - new_span, c_y + new_span), new_span, points);
-                self.qt_to_world_aux(top.b, (c_x + new_span, c_y + new_span), new_span, points);
-                self.qt_to_world_aux(top.c, (c_x - new_span, c_y - new_span), new_span, points);
-                self.qt_to_world_aux(top.d, (c_x + new_span, c_y - new_span), new_span, points);
+                let span = 2_isize.pow((top.k / 4) as u32);
+                self.qt_to_world_aux(top.a, (c_x - span, c_y + span), points);
+                self.qt_to_world_aux(top.b, (c_x + span, c_y + span), points);
+                self.qt_to_world_aux(top.c, (c_x - span, c_y - span), points);
+                self.qt_to_world_aux(top.d, (c_x + span, c_y - span), points);
             }
         }
     }
