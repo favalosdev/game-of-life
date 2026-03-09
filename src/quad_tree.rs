@@ -25,6 +25,8 @@ enum Quadrant {
     SE
 }
 
+type Path = Vec<(NodeId, Quadrant)>;
+
 const DEAD: usize = 0;
 const ALIVE: usize = 1;
 const VOID: usize = 2;
@@ -357,54 +359,52 @@ impl QuadTree {
         next
     }
 
-    pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
-        let mut points = list![];
-        self.qt_to_world_aux(self.root, (0, 0), &mut points);
-        points
+    pub fn toggle(&mut self, (x, y): (isize, isize)) {
     }
 
-    pub fn toggle(&self, (x, y): (isize, isize)) -> bool {
-        let (parent, quadrant) = self.search((x, y));
-        let p_node = &self.nodes[parent];
-
-        match quadrant {
-            Quadrant::NW => p_node.a == ALIVE,
-            Quadrant::NE => p_node.b == ALIVE,
-            Quadrant::SW => p_node.c == ALIVE,
-            Quadrant::SE => p_node.d == ALIVE
-        }
-    }
-
-    fn search(&self, (x, y): (isize, isize)) -> (NodeId, Quadrant) {
-        self.search_aux(self.root, self.root, Quadrant::SW, (x, y), (0, 0))
+    // Returns a path from the parent node to the target
+    fn search(&self, (x, y): (isize, isize)) -> Path {
+        let mut path= Vec::with_capacity(QT_DIM + 1);
+        // TODO: add some guardrails in here
+        self.search_aux(self.root, None, (x, y), (0, 0), &mut path);
+        path
     }
 
     // Returns parent node and relative position within it
     fn search_aux(
         &self,
         current: NodeId,
-        parent: NodeId,
-        quadrant: Quadrant,
+        quadrant: Option<Quadrant>,
         (x, y): (isize, isize),
-        (c_x, c_y): (isize, isize)) -> (NodeId, Quadrant) {
+        (c_x, c_y): (isize, isize),
+        path: &mut Path
+    ) {
         let c_node = &self.nodes[current];
         let level = c_node.k;
 
-        if level == 0 {
-            (parent, quadrant)
-        } else {
+        if level > 0 {
             let offset = 2_isize.pow((level - 2) as u32);
 
             if x >= c_x && y >= c_y {
-                self.search_aux(c_node.b, current, Quadrant::NE, (x, y), (c_x + offset, c_y + offset))
+                self.search_aux(c_node.b, Some(Quadrant::NE), (x, y), (c_x + offset, c_y + offset), path)
             } else if x >= c_x && y < c_y {
-                self.search_aux(c_node.d, current, Quadrant::SE, (x, y), (c_x + offset, c_y - offset))
+                self.search_aux(c_node.d, Some(Quadrant::SE), (x, y), (c_x + offset, c_y - offset), path)
             } else if x < c_x && y >= c_y {
-                self.search_aux(c_node.a, current, Quadrant::NW, (x, y), (c_x - offset, c_y + offset))
+                self.search_aux(c_node.a, Some(Quadrant::NW), (x, y), (c_x - offset, c_y + offset), path)
             } else {
-                self.search_aux(c_node.c, current, Quadrant::SW, (x, y), (c_x - offset, c_y - offset))
+                self.search_aux(c_node.c, Some(Quadrant::SW), (x, y), (c_x - offset, c_y - offset), path)
+            }
+
+            if quadrant.is_some() {
+                path.push((current, quadrant.unwrap()))
             }
         }
+    }
+
+    pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
+        let mut points = list![];
+        self.qt_to_world_aux(self.root, (0, 0), &mut points);
+        points
     }
 
     fn qt_to_world_aux(
