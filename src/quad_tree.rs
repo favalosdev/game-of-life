@@ -18,7 +18,7 @@ struct Node {
     d: NodeId
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 enum Quadrant {
     NW,
     NE,
@@ -26,7 +26,7 @@ enum Quadrant {
     SE
 }
 
-type Path = Vec<(NodeId, Quadrant)>;
+type Path = Vec<(NodeId, Option<Quadrant>)>;
 
 const DEAD: usize = 0;
 const ALIVE: usize = 1;
@@ -360,11 +360,46 @@ impl QuadTree {
         next
     }
 
+    // In here we need to perform "backprop"
     pub fn toggle(&mut self, (x, y): (isize, isize)) {
         let path = self.search((x, y));
-        println!("Toggling coordinates ({}, {})", x, y);
-        println!("The path is {:?}", path);
+        let n = path.len();
+
+        if n >= 2 {
+            let (target, q) = path[0];
+            let (parent, _) = path[1];
+            let mut i = 2;
+            let mut updated= self.set_child(parent, q.unwrap(), if target == ALIVE { DEAD } else { ALIVE });
+
+            while i < n {
+                let (_, q) = path[i-1];
+                let (curr, _) = path[i];
+
+                if q.is_some() {
+                    updated = self.set_child(curr, q.unwrap(), updated);
+                }
+
+                i += 1;
+            }
+
+            self.root = updated;
+        }
     }
+
+    // Aux function to toggle
+    fn set_child(&mut self, parent: NodeId, quadrant: Quadrant, target: NodeId) -> NodeId {
+        let p_node = &self.nodes[parent];
+        let (a, b, c, d) = (p_node.a, p_node.b, p_node.c, p_node.d);
+
+        let new_id = match quadrant {
+            Quadrant::NW => self.join(target, b, c, d),
+            Quadrant::NE => self.join(a, target, c, d),
+            Quadrant::SW => self.join(a, b, target, d),
+            Quadrant::SE => self.join(a, b, c, target)
+        };
+
+        new_id
+    } 
 
     // Returns a path from the parent node to the target
     fn search(&self, (x, y): (isize, isize)) -> Path {
@@ -398,9 +433,7 @@ impl QuadTree {
                 self.search_aux(c_node.c, Some(Quadrant::SW), (x, y), (c_x - offset, c_y - offset), path)
             }
 
-            if quadrant.is_some() {
-                path.push((current, quadrant.unwrap()))
-            }
+            path.push((current, quadrant))
         }
     }
 
