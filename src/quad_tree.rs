@@ -368,8 +368,8 @@ impl QuadTree {
         if n >= 2 {
             let (target, q) = path[0];
             let (parent, _) = path[1];
-            let mut i = 2;
             let mut updated= self.set_child(parent, q, if target == ALIVE { DEAD } else { ALIVE });
+            let mut i = 2;
 
             while i < n {
                 let (_, q) = path[i-1];
@@ -416,7 +416,7 @@ impl QuadTree {
         let c_node = &self.nodes[current];
         let level = c_node.k;
 
-        if level > 1 {
+        if level > 2 {
             let offset = 2_isize.pow((level - 2) as u32);
 
             if x >= c_x && y >= c_y {
