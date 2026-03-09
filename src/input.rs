@@ -33,7 +33,7 @@ pub fn handle_input(
     let (x_w, y_w) = camera.from_screen_coords(mouse_state.x() - OFFSET_X, mouse_state.y() - OFFSET_Y);
     let zoom = camera.zoom;
 
-    feedback.mouse_coords = MouseCoords { x: x_w, y: -y_w };
+    feedback.mouse_coords = MouseCoords { x: x_w as f32, y: -y_w as f32 };
     feedback.cell_count = quad_tree.cell_count();
 
     for event in event_pump.poll_iter() {
@@ -55,11 +55,11 @@ pub fn handle_input(
                 camera.x += CAMERA_DELTA / zoom;
             },
             Event::KeyDown { scancode: Some(Scancode::I), .. } => {
-                camera.zoom += zoom * 0.1;
+                camera.zoom += 1;
             },
             Event::KeyDown { scancode: Some(Scancode::O), .. } => {
-                if zoom > 0.0 {
-                    camera.zoom -= zoom * 0.1;
+                if camera.zoom > 1 {
+                    camera.zoom -= 1;
                 }
             },
             Event::KeyDown { scancode: Some(Scancode::P), .. } => {
@@ -70,11 +70,9 @@ pub fn handle_input(
                     quad_tree.advance(STEP);
                 }
             },
-            /*
             Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                 input_state.show_grid = !input_state.show_grid;
             },
-            */
             _ => {}
         }
     }

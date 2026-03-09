@@ -5,6 +5,7 @@ use sdl2::rect::Rect;
 use sdl2::render::TextureQuery;
 use std::path::Path;
 use std::collections::LinkedList;
+use std::cmp;
 
 use crate::camera::Camera;
 use crate::config::*;
@@ -25,56 +26,57 @@ fn get_rect(camera: &Camera, x_raw: isize, y_raw: isize) -> Rect {
     let (xf_s, _) = camera.from_world_coords(xf_w, 0);
     let (_, yf_s) = camera.from_world_coords(0, yf_w);
 
-    rect!(xo_s + OFFSET_X, yo_s + OFFSET_Y, xf_s - xo_s, yf_s - yo_s)
+    let r_width = xf_s - xo_s;
+    let r_height = yf_s - yo_s;
+    
+    rect!(xo_s + OFFSET_X, yo_s + OFFSET_Y, r_width, r_height)
 }
 
 fn draw_squares(canvas: &mut Canvas<Window>, cells: &LinkedList<(isize, isize)>, camera: &Camera, show_grid: bool) {
     canvas.set_draw_color(CELL_COLOR);
 
-    let mut min_x_s = WINDOW_WIDTH as f32;
-    let mut min_y_s = WINDOW_HEIGHT as f32;
+    let mut min_x_s = WINDOW_WIDTH;
+    let mut min_y_s = WINDOW_HEIGHT;
 
     for (x,y) in cells.iter() {
         let to_fill = get_rect(camera, *x, *y);
         let _ = canvas.fill_rect(to_fill);
 
         if to_fill.x >= 0 {
-            min_x_s = f32::min(min_x_s, to_fill.x as f32);
+            min_x_s = cmp::min(min_x_s, to_fill.x as u32);
         }
 
         if to_fill.y >= 0 {
-            min_y_s = f32::min(min_y_s, to_fill.y as f32);
+            min_y_s = cmp::min(min_y_s, to_fill.y as u32);
         }
     }
 
-    /*
     if show_grid {
         draw_grid(canvas, camera, min_x_s, min_y_s)
     }
-    */
 }
 
-fn draw_grid(canvas: &mut Canvas<Window>, camera: &Camera, min_x_s: f32, min_y_s: f32) {
+fn draw_grid(canvas: &mut Canvas<Window>, camera: &Camera, min_x_s: u32, min_y_s: u32) {
     canvas.set_draw_color(GRID_COLOR);
 
     let square= get_rect(camera, 0, 0);
-    let square_width = square.width() as f32;
-    let square_height = square.height() as f32;
+    let square_width = square.width();
+    let square_height = square.height();
 
     let start_x = min_x_s % square_width;
     let start_y = min_y_s % square_height;
 
     let mut x = start_x;
 
-    while x <= WINDOW_WIDTH as f32 {
-        let _ = canvas.draw_line((x.floor() as i32, 0), (x.floor() as i32, WINDOW_HEIGHT as i32));
+    while x <= WINDOW_WIDTH {
+        let _ = canvas.draw_line((x as i32, 0), (x as i32, WINDOW_HEIGHT as i32));
         x += square_width;
     }
 
     let mut y = start_y;
 
-    while y <= WINDOW_HEIGHT as f32 {
-        let _ = canvas.draw_line((0, y.floor() as i32), (WINDOW_WIDTH as i32, y.floor() as i32));
+    while y <= WINDOW_HEIGHT {
+        let _ = canvas.draw_line((0, y as i32), (WINDOW_WIDTH as i32, y as i32));
         y += square_height;
     }
 }

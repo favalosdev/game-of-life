@@ -48,7 +48,7 @@ fn main() {
 
     let args = Args::parse();
     let mut quad_tree= QuadTree::new();
-    let mut camera = Camera::new(ZOOM, 0.0, 0.0);
+    let mut camera = Camera::new(DEFAULT_ZOOM, 0, 0);
 
     let file = match args.pattern_path {
         Some(path) => File::open(path).unwrap(),

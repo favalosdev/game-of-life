@@ -100,14 +100,14 @@ impl QuadTree {
         let cells =  pattern
             .map(|cell| cell.unwrap())
             .filter(|data | data.state == 1)
-            .map(|data| ((data.position.0 - (width as i64) / 2) as isize, -(data.position.1 - (height as i64) / 2) as isize))
+            .map(|data| ((data.position.0 - (width as i64) / 2) as isize, ((height as i64) / 2 - data.position.1) as isize))
             .collect::<LinkedList<_>>();
 
         self.world_to_qt(cells);
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(cells, (0,0), QT_DIM as usize)
+        self.root = self.world_to_qt_aux(cells, (0,0), QT_DIM)
     }
 
     pub fn get_id(&self) -> NodeId {
@@ -160,6 +160,7 @@ impl QuadTree {
                     }
                 }
             }
+
             let offset = 2_isize.pow((level - 2) as u32);
             let nw = self.world_to_qt_aux(nw_cells, (c_x - offset, c_y + offset), level - 1);
             let ne = self.world_to_qt_aux(ne_cells, (c_x + offset, c_y + offset), level - 1);
@@ -281,7 +282,6 @@ impl QuadTree {
         }
 
         let m_node = &self.nodes[m];
-
         let level = m_node.k;
 
         let next = if m_node.n == 0 {
