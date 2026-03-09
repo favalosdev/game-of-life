@@ -365,7 +365,6 @@ impl QuadTree {
     // Returns a path from the parent node to the target
     fn search(&self, (x, y): (isize, isize)) -> Path {
         let mut path= Vec::with_capacity(QT_DIM + 1);
-        // TODO: add some guardrails in here
         self.search_aux(self.root, None, (x, y), (0, 0), &mut path);
         path
     }
@@ -416,9 +415,7 @@ impl QuadTree {
         let r_node= &self.nodes[root];
 
         if r_node.n > 0 {
-            if r_node.k == 0 {
-                points.push_back((c_x, c_y));
-            } else if r_node.k == 1 {
+            if r_node.k == 1 {
                 if r_node.a == ALIVE {
                     points.push_back((c_x - 1, c_y));
                 }
