@@ -6,7 +6,11 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(zoom: i32, x: i32, y: i32) -> Self {
-        Self { zoom, x, y }
+        Self {
+            zoom,
+            x,
+            y
+        }
     }
 
     pub fn from_world_coords(&self, x_w: isize, y_w: isize) -> (i32, i32) {
