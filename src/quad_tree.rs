@@ -18,9 +18,16 @@ struct Node {
     d: NodeId
 }
 
-const VOID: usize = 0;
-const DEAD: usize = 1;
-const ALIVE: usize = 2;
+enum Quadrant {
+    NW,
+    NE,
+    SW,
+    SE
+}
+
+const DEAD: usize = 0;
+const ALIVE: usize = 1;
+const VOID: usize = 2;
 
 impl Node {
     fn new(
@@ -67,9 +74,9 @@ impl QuadTree {
         let dead = Node::new(0, 0, VOID, VOID, VOID, VOID);
         let alive = Node::new(1, 0, VOID, VOID, VOID, VOID);
 
-        nodes.push(void);
         nodes.push(dead);
         nodes.push(alive);
+        nodes.push(void);
 
         let caches = Caches::new();
 
@@ -354,6 +361,50 @@ impl QuadTree {
         let mut points = list![];
         self.qt_to_world_aux(self.root, (0, 0), &mut points);
         points
+    }
+
+    pub fn toggle(&self, (x, y): (isize, isize)) -> bool {
+        let (parent, quadrant) = self.search((x, y));
+        let p_node = &self.nodes[parent];
+
+        match quadrant {
+            Quadrant::NW => p_node.a == ALIVE,
+            Quadrant::NE => p_node.b == ALIVE,
+            Quadrant::SW => p_node.c == ALIVE,
+            Quadrant::SE => p_node.d == ALIVE
+        }
+    }
+
+    fn search(&self, (x, y): (isize, isize)) -> (NodeId, Quadrant) {
+        self.search_aux(self.root, self.root, Quadrant::SW, (x, y), (0, 0))
+    }
+
+    // Returns parent node and relative position within it
+    fn search_aux(
+        &self,
+        current: NodeId,
+        parent: NodeId,
+        quadrant: Quadrant,
+        (x, y): (isize, isize),
+        (c_x, c_y): (isize, isize)) -> (NodeId, Quadrant) {
+        let c_node = &self.nodes[current];
+        let level = c_node.k;
+
+        if level == 0 {
+            (parent, quadrant)
+        } else {
+            let offset = 2_isize.pow((level - 2) as u32);
+
+            if x >= c_x && y >= c_y {
+                self.search_aux(c_node.b, current, Quadrant::NE, (x, y), (c_x + offset, c_y + offset))
+            } else if x >= c_x && y < c_y {
+                self.search_aux(c_node.d, current, Quadrant::SE, (x, y), (c_x + offset, c_y - offset))
+            } else if x < c_x && y >= c_y {
+                self.search_aux(c_node.a, current, Quadrant::NW, (x, y), (c_x - offset, c_y + offset))
+            } else {
+                self.search_aux(c_node.c, current, Quadrant::SW, (x, y), (c_x - offset, c_y - offset))
+            }
+        }
     }
 
     fn qt_to_world_aux(
