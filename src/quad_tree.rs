@@ -26,7 +26,7 @@ enum Quadrant {
     SE
 }
 
-type Path = Vec<(NodeId, Option<Quadrant>)>;
+type Path = Vec<(NodeId, Quadrant)>;
 
 const DEAD: usize = 0;
 const ALIVE: usize = 1;
@@ -369,16 +369,12 @@ impl QuadTree {
             let (target, q) = path[0];
             let (parent, _) = path[1];
             let mut i = 2;
-            let mut updated= self.set_child(parent, q.unwrap(), if target == ALIVE { DEAD } else { ALIVE });
+            let mut updated= self.set_child(parent, q, if target == ALIVE { DEAD } else { ALIVE });
 
             while i < n {
                 let (_, q) = path[i-1];
                 let (curr, _) = path[i];
-
-                if q.is_some() {
-                    updated = self.set_child(curr, q.unwrap(), updated);
-                }
-
+                updated = self.set_child(curr, q, updated);
                 i += 1;
             }
 
@@ -387,11 +383,11 @@ impl QuadTree {
     }
 
     // Aux function to toggle
-    fn set_child(&mut self, parent: NodeId, quadrant: Quadrant, target: NodeId) -> NodeId {
+    fn set_child(&mut self, parent: NodeId, q: Quadrant, target: NodeId) -> NodeId {
         let p_node = &self.nodes[parent];
         let (a, b, c, d) = (p_node.a, p_node.b, p_node.c, p_node.d);
 
-        let new_id = match quadrant {
+        let new_id = match q {
             Quadrant::NW => self.join(target, b, c, d),
             Quadrant::NE => self.join(a, target, c, d),
             Quadrant::SW => self.join(a, b, target, d),
@@ -404,7 +400,7 @@ impl QuadTree {
     // Returns a path from the parent node to the target
     fn search(&self, (x, y): (isize, isize)) -> Path {
         let mut path= Vec::with_capacity(QT_DIM + 1);
-        self.search_aux(self.root, None, (x, y), (0, 0), &mut path);
+        self.search_aux(self.root, Quadrant::SW, (x, y), (0, 0), &mut path);
         path
     }
 
@@ -412,7 +408,7 @@ impl QuadTree {
     fn search_aux(
         &self,
         current: NodeId,
-        quadrant: Option<Quadrant>,
+        quadrant: Quadrant,
         (x, y): (isize, isize),
         (c_x, c_y): (isize, isize),
         path: &mut Path
@@ -424,13 +420,13 @@ impl QuadTree {
             let offset = 2_isize.pow((level - 2) as u32);
 
             if x >= c_x && y >= c_y {
-                self.search_aux(c_node.b, Some(Quadrant::NE), (x, y), (c_x + offset, c_y + offset), path)
+                self.search_aux(c_node.b, Quadrant::NE, (x, y), (c_x + offset, c_y + offset), path)
             } else if x >= c_x && y < c_y {
-                self.search_aux(c_node.d, Some(Quadrant::SE), (x, y), (c_x + offset, c_y - offset), path)
+                self.search_aux(c_node.d, Quadrant::SE, (x, y), (c_x + offset, c_y - offset), path)
             } else if x < c_x && y >= c_y {
-                self.search_aux(c_node.a, Some(Quadrant::NW), (x, y), (c_x - offset, c_y + offset), path)
+                self.search_aux(c_node.a, Quadrant::NW, (x, y), (c_x - offset, c_y + offset), path)
             } else {
-                self.search_aux(c_node.c, Some(Quadrant::SW), (x, y), (c_x - offset, c_y - offset), path)
+                self.search_aux(c_node.c, Quadrant::SW, (x, y), (c_x - offset, c_y - offset), path)
             }
 
             path.push((current, quadrant))
