@@ -18,6 +18,7 @@ struct Node {
     d: NodeId
 }
 
+#[derive(Debug)]
 enum Quadrant {
     NW,
     NE,
@@ -360,6 +361,9 @@ impl QuadTree {
     }
 
     pub fn toggle(&mut self, (x, y): (isize, isize)) {
+        let path = self.search((x, y));
+        println!("Toggling coordinates ({}, {})", x, y);
+        println!("The path is {:?}", path);
     }
 
     // Returns a path from the parent node to the target
@@ -381,7 +385,7 @@ impl QuadTree {
         let c_node = &self.nodes[current];
         let level = c_node.k;
 
-        if level > 0 {
+        if level > 1 {
             let offset = 2_isize.pow((level - 2) as u32);
 
             if x >= c_x && y >= c_y {
@@ -413,9 +417,10 @@ impl QuadTree {
         points: &mut LinkedList<(isize, isize)>
     ) {
         let r_node= &self.nodes[root];
+        let level = r_node.k;
 
         if r_node.n > 0 {
-            if r_node.k == 1 {
+            if level == 1 {
                 if r_node.a == ALIVE {
                     points.push_back((c_x - 1, c_y));
                 }
@@ -432,7 +437,7 @@ impl QuadTree {
                     points.push_back((c_x, c_y - 1));
                 }
             } else {
-                let offset = 2_isize.pow((r_node.k - 2) as u32);
+                let offset = 2_isize.pow((level - 2) as u32);
                 self.qt_to_world_aux(r_node.a, (c_x - offset, c_y + offset), points);
                 self.qt_to_world_aux(r_node.b, (c_x + offset, c_y + offset), points);
                 self.qt_to_world_aux(r_node.c, (c_x - offset, c_y - offset), points);

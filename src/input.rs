@@ -73,9 +73,8 @@ pub fn handle_input(
             Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                 input_state.show_grid = !input_state.show_grid;
             },
-            Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, x, y, .. } => {
-                let (x_w, y_w) = camera.from_screen_coords(x, y);
-                quad_tree.toggle((x_w, y_w));
+            Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } => {
+                quad_tree.toggle((x_w, -y_w));
             }
             _ => {}
         }
