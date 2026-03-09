@@ -30,10 +30,10 @@ pub fn handle_input(
     input_state: &mut InputState,
 ) -> bool {
     let mouse_state: MouseState = event_pump.mouse_state();
-    let (x_w, y_w) = camera.from_screen_coords(mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
+    let (mx_w, my_w) = camera.from_screen_coords(mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
     let zoom = camera.zoom;
 
-    feedback.mouse_coords = MouseCoords { x: x_w as f32, y: y_w as f32 };
+    feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
     feedback.cell_count = quad_tree.cell_count();
 
     for event in event_pump.poll_iter() {
@@ -74,7 +74,7 @@ pub fn handle_input(
                 input_state.show_grid = !input_state.show_grid;
             },
             Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } => {
-                quad_tree.toggle((x_w, y_w));
+                quad_tree.toggle((mx_w, my_w));
             }
             _ => {}
         }

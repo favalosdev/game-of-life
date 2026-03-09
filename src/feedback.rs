@@ -1,7 +1,7 @@
 #[derive(Clone, PartialEq)]
 pub struct MouseCoords {
-    pub x: f32,
-    pub y: f32
+    pub x: isize,
+    pub y: isize 
 }
 
 #[derive(Clone, PartialEq)]
@@ -15,8 +15,8 @@ impl Feedback {
         Feedback {
             cell_count: 0,
             mouse_coords: MouseCoords {
-                x: 0.0,
-                y: 0.0
+                x: 0,
+                y: 0
             }
         }
     }
