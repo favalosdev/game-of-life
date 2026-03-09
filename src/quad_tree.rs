@@ -368,7 +368,7 @@ impl QuadTree {
         if n >= 2 {
             let (target, q) = path[0];
             let (parent, _) = path[1];
-            let mut updated= self.set_child(parent, q, if target == ALIVE { DEAD } else { ALIVE });
+            let mut updated = self.set_child(parent, q, if target == ALIVE { DEAD } else { ALIVE });
             let mut i = 2;
 
             while i < n {
@@ -416,8 +416,8 @@ impl QuadTree {
         let c_node = &self.nodes[current];
         let level = c_node.k;
 
-        if level > 2 {
-            let offset = 2_isize.pow((level - 2) as u32);
+        if level > 0 {
+            let offset = if level > 1 { 2_isize.pow((level - 2) as u32) } else { 1 };
 
             if x >= c_x && y >= c_y {
                 self.search_aux(c_node.b, Quadrant::NE, (x, y), (c_x + offset, c_y + offset), path)
@@ -429,7 +429,7 @@ impl QuadTree {
                 self.search_aux(c_node.c, Quadrant::SW, (x, y), (c_x - offset, c_y - offset), path)
             }
 
-            path.push((current, quadrant))
+            path.push((current, quadrant));
         }
     }
 
@@ -447,6 +447,7 @@ impl QuadTree {
     ) {
         let r_node= &self.nodes[root];
         let level = r_node.k;
+        println!("Current level is: {}", level);
 
         if r_node.n > 0 {
             if level == 1 {
