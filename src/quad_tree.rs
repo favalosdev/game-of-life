@@ -447,7 +447,6 @@ impl QuadTree {
     ) {
         let r_node= &self.nodes[root];
         let level = r_node.k;
-        println!("Current level is: {}", level);
 
         if r_node.n > 0 {
             if level == 1 {
