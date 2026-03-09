@@ -186,12 +186,22 @@ impl QuadTree {
         id
     }
 
+    fn debug_node(&self, id: NodeId) {
+        println!("{:?}", &self.nodes[id])
+    }
+
     fn join(&mut self, a: NodeId, b: NodeId, c: NodeId, d: NodeId) -> NodeId {
         if let Some(id) = self.caches.join.get(&(a, b, c, d)) {
             return *id;
         }
 
+        let a_level = &self.nodes[a].k;
+        let b_level = &self.nodes[b].k;
+        let c_level = &self.nodes[c].k;
+        let d_level = &self.nodes[d].k;
+
         let n = &self.nodes[a].n + &self.nodes[b].n + &self.nodes[c].n + &self.nodes[d].n;
+        assert!(a_level == b_level && b_level == c_level && c_level == d_level, "Children generations don't match!");
         let to_add = Node::new(n, &self.nodes[a].k + 1, a, b, c, d);
         let result = self.new_node(to_add);
         self.caches.join.insert((a, b, c, d), result);
@@ -362,6 +372,7 @@ impl QuadTree {
 
     // In here we need to perform "backprop"
     pub fn toggle(&mut self, (x, y): (isize, isize)) {
+        println!("Toggling point ({},{})", x, y);
         let path = self.search((x, y));
         let n = path.len();
 
@@ -428,9 +439,9 @@ impl QuadTree {
             } else {
                 self.search_aux(c_node.c, Quadrant::SW, (x, y), (c_x - offset, c_y - offset), path)
             }
-
-            path.push((current, quadrant));
         }
+
+        path.push((current, quadrant));
     }
 
     pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
