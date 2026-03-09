@@ -74,7 +74,9 @@ pub fn handle_input(
                 input_state.show_grid = !input_state.show_grid;
             },
             Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } => {
-                quad_tree.toggle((mx_w, my_w));
+                if input_state.is_paused {
+                    quad_tree.toggle((mx_w, my_w));
+                }
             }
             _ => {}
         }
