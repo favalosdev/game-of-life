@@ -10,8 +10,8 @@ type NodeId = usize;
 
 #[derive(Debug)]
 struct Node {
-    n: usize,
-    k: usize,
+    n: usize, // Number of alive cells within the node
+    k: usize, // Size of the quadtree (2**k x 2**k)
     a: NodeId,
     b: NodeId,
     c: NodeId,
@@ -34,8 +34,8 @@ const VOID: usize = 2;
 
 impl Node {
     fn new(
-        n: usize, // Number of alive cells within the node
-        k: usize, // Size of the quadtree (2**k x 2**k)
+        n: usize,
+        k: usize,
         a: NodeId,
         b: NodeId,
         c: NodeId,
@@ -113,7 +113,7 @@ impl QuadTree {
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, ((height as i64) / 2 - data.position.1) as isize))
             .collect::<LinkedList<_>>();
 
-        self.world_to_qt(cells);
+        self.world_to_qt(cells); 
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
@@ -362,7 +362,6 @@ impl QuadTree {
 
     // In here we need to perform "backprop"
     pub fn toggle(&mut self, (x, y): (isize, isize)) {
-        println!("Toggling point ({},{})", x, y);
         let path = self.search((x, y));
         let n = path.len();
 
