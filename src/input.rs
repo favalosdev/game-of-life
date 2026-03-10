@@ -30,7 +30,8 @@ pub fn handle_input(
     input_state: &mut InputState,
 ) -> bool {
     let mouse_state: MouseState = event_pump.mouse_state();
-    let (mx_w, my_w) = camera.from_screen_coords(mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
+    let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
+    let (mx_w, my_w) = camera.from_screen_coords(mx_s, my_s);
     let zoom = camera.zoom;
 
     feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
@@ -43,13 +44,13 @@ pub fn handle_input(
                 return true;
             },
             Event::KeyDown { scancode: Some(Scancode::W), .. } => {
-                camera.y -= CAMERA_DELTA / zoom;
+                camera.y += CAMERA_DELTA / zoom;
             },
             Event::KeyDown { scancode: Some(Scancode::A), .. } => {
                 camera.x -= CAMERA_DELTA / zoom;
             },
             Event::KeyDown { scancode: Some(Scancode::S), .. } => {
-                camera.y += CAMERA_DELTA / zoom;
+                camera.y -= CAMERA_DELTA / zoom;
             },
             Event::KeyDown { scancode: Some(Scancode::D), .. } => {
                 camera.x += CAMERA_DELTA / zoom;
@@ -75,6 +76,10 @@ pub fn handle_input(
             },
             Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } => {
                 if input_state.is_paused {
+                    println!("Mouse coords");
+                    println!("Screen: ({}, {})", mx_s, my_s);
+                    println!("Zoom: {}", zoom);
+                    println!("Quotients: ({}, {})", (mx_s / zoom), (my_s / zoom));
                     quad_tree.toggle((mx_w, my_w));
                 }
             }

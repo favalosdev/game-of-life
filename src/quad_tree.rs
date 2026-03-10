@@ -10,8 +10,8 @@ type NodeId = usize;
 
 #[derive(Debug)]
 struct Node {
-    n: usize,
-    k: usize,
+    n: usize, // Number of alive cells within the node
+    k: usize, // Size of the quadtree (2**k x 2**k)
     a: NodeId,
     b: NodeId,
     c: NodeId,
@@ -34,8 +34,8 @@ const VOID: usize = 2;
 
 impl Node {
     fn new(
-        n: usize, // Number of alive cells within the node
-        k: usize, // Size of the quadtree (2**k x 2**k)
+        n: usize,
+        k: usize,
         a: NodeId,
         b: NodeId,
         c: NodeId,
@@ -93,25 +93,23 @@ impl QuadTree {
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
-        let header_data = pattern.header_data().unwrap();
-        let width = header_data.x;
-        let height = header_data.y;
-        let rule = &header_data.rule;
+        let mut cells: LinkedList<(isize, isize)> = list![];
 
-        match rule {
-            Some(content) => {
-                let parts: Vec<&str> = content.split("/").collect();
-                self.b = parts[0][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
-                self.s = parts[1][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
-            },
-            _ => {}
-        }
+        cells.push_back((0, 0));
+        cells.push_back((1, 1));
+        cells.push_back((2, 2));
 
-        let cells =  pattern
-            .map(|cell| cell.unwrap())
-            .filter(|data | data.state == 1)
-            .map(|data| ((data.position.0 - (width as i64) / 2) as isize, ((height as i64) / 2 - data.position.1) as isize))
-            .collect::<LinkedList<_>>();
+        cells.push_back((0, -1));
+        cells.push_back((1, -2));
+        cells.push_back((2, -3));
+
+        cells.push_back((-1, 0));
+        cells.push_back((-2, 1));
+        cells.push_back((-3, 2));
+
+        cells.push_back((-1, -1));
+        cells.push_back((-2, -2));
+        cells.push_back((-3, -3));
 
         self.world_to_qt(cells);
     }
@@ -362,7 +360,6 @@ impl QuadTree {
 
     // In here we need to perform "backprop"
     pub fn toggle(&mut self, (x, y): (isize, isize)) {
-        println!("Toggling point ({},{})", x, y);
         let path = self.search((x, y));
         let n = path.len();
 

@@ -19,7 +19,7 @@ macro_rules! rect(
 );
 
 fn get_rect(camera: &Camera, x_raw: isize, y_raw: isize) -> Rect {
-    let (xo_w, yo_w) = (x_raw, -y_raw);
+    let (xo_w, yo_w) = (x_raw, y_raw);
     let (xf_w, yf_w) = (xo_w + 1, yo_w + 1);
 
     let (xo_s, yo_s) = camera.from_world_coords(xo_w, yo_w);
@@ -29,7 +29,7 @@ fn get_rect(camera: &Camera, x_raw: isize, y_raw: isize) -> Rect {
     let r_width = xf_s - xo_s;
     let r_height = yf_s - yo_s;
     
-    rect!(xo_s + OFFSET_X, yo_s + OFFSET_Y, r_width, r_height)
+    rect!(xo_s + OFFSET_X, (OFFSET_Y - yo_s) - r_height, r_width, r_height)
 }
 
 fn draw_squares(canvas: &mut Canvas<Window>, cells: &LinkedList<(isize, isize)>, camera: &Camera, show_grid: bool) {
