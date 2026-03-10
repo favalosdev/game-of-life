@@ -2,7 +2,7 @@
 
 Adapted and extended from this [source](https://johnhw.github.io/hashlife/index.md.html).
 
-## Running instructions
+## Running Instructions
 
 1. Clone the repository and navigate to the root folder
 2. Generate a build release with `cargo build --release`
