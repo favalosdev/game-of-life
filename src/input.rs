@@ -76,10 +76,6 @@ pub fn handle_input(
             },
             Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } => {
                 if input_state.is_paused {
-                    println!("Mouse coords");
-                    println!("Screen: ({}, {})", mx_s, my_s);
-                    println!("Zoom: {}", zoom);
-                    println!("Quotients: ({}, {})", (mx_s / zoom), (my_s / zoom));
                     quad_tree.toggle((mx_w, my_w));
                 }
             }
