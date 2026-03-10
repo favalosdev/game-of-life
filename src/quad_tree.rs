@@ -93,25 +93,27 @@ impl QuadTree {
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
-        let mut cells: LinkedList<(isize, isize)> = list![];
+        let header_data = pattern.header_data().unwrap();
+        let width = header_data.x;
+        let height = header_data.y;
+        let rule = &header_data.rule;
 
-        cells.push_back((0, 0));
-        cells.push_back((1, 1));
-        cells.push_back((2, 2));
+        match rule {
+            Some(content) => {
+                let parts: Vec<&str> = content.split("/").collect();
+                self.b = parts[0][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
+                self.s = parts[1][1..].chars().map(|c| c.to_digit(10).unwrap() as usize).collect();
+            },
+            _ => {}
+        }
 
-        cells.push_back((0, -1));
-        cells.push_back((1, -2));
-        cells.push_back((2, -3));
+        let cells =  pattern
+            .map(|cell| cell.unwrap())
+            .filter(|data | data.state == 1)
+            .map(|data| ((data.position.0 - (width as i64) / 2) as isize, ((height as i64) / 2 - data.position.1) as isize))
+            .collect::<LinkedList<_>>();
 
-        cells.push_back((-1, 0));
-        cells.push_back((-2, 1));
-        cells.push_back((-3, 2));
-
-        cells.push_back((-1, -1));
-        cells.push_back((-2, -2));
-        cells.push_back((-3, -3));
-
-        self.world_to_qt(cells);
+        self.world_to_qt(cells); 
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
