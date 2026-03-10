@@ -20,7 +20,6 @@ impl Camera {
     }
 
     pub fn from_screen_coords(&self, x_s: i32, y_s: i32) -> (isize, isize) {
-        // Debugging this fuckers has been difficult
         let q_x = x_s / self.zoom - (x_s < 0) as i32;
         let q_y = y_s / self.zoom - (y_s < 0) as i32;
 
