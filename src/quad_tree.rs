@@ -360,7 +360,6 @@ impl QuadTree {
         next
     }
 
-    // In here we need to perform "backprop"
     pub fn toggle(&mut self, (x, y): (isize, isize)) {
         let path = self.search((x, y));
         let n = path.len();
