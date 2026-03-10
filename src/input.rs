@@ -74,7 +74,7 @@ pub fn handle_input(
             Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                 input_state.show_grid = !input_state.show_grid;
             },
-            Event::MouseButtonDown { mouse_btn: MouseButton::Left, clicks: 1, .. } => {
+            Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                 if input_state.is_paused {
                     quad_tree.toggle((mx_w, my_w));
                 }
