@@ -47,7 +47,10 @@ fn main() {
     let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
 
     let args = Args::parse();
+
     let mut quad_tree= QuadTree::new();
+    quad_tree.init();
+
     let mut camera = Camera::new(DEFAULT_ZOOM, 0, 0);
 
     let file = match args.pattern_path {

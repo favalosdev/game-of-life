@@ -28,9 +28,9 @@ enum Quadrant {
 
 type Path = Vec<(NodeId, Quadrant)>;
 
-const DEAD: usize = 0;
-const ALIVE: usize = 1;
-const VOID: usize = 2;
+const VOID: NodeId = 0;
+const DEAD: NodeId = 1;
+const ALIVE: NodeId = 2;
 
 impl Node {
     fn new(
@@ -76,20 +76,24 @@ impl QuadTree {
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
         let dead = Node::new(0, 0, VOID, VOID, VOID, VOID);
         let alive = Node::new(1, 0, VOID, VOID, VOID, VOID);
-
+        
+        nodes.push(void);
         nodes.push(dead);
         nodes.push(alive);
-        nodes.push(void);
 
         let caches = Caches::new();
 
         QuadTree {
             nodes,
-            root: DEAD,
+            root: VOID,
             b: vec![3],
             s: vec![2],
             caches
         }
+    }
+
+    pub fn init(&mut self) {
+        self.root = self.zero(QT_DIM)
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
