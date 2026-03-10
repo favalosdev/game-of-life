@@ -10,7 +10,7 @@ Adapted and extended from this [source](https://johnhw.github.io/hashlife/index.
 
 ## Flags
 
-- `--pattern-path <path>`: Specify the pattern to load. The path must point to a `.rle` file
+- `--pattern-path <path>`: Specify the pattern to load. `<path>` must point to a valid `.rle` file
 - `--hash-life`: Run simulation at full speed by executing Bill Gosper's hashlife algorithm
 
 ## Controls
