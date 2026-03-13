@@ -13,3 +13,4 @@ pub const CELL_COLOR: Color = Color::RGB(0, 255, 0);
 pub const FEEDBACK_COLOR: Color = Color::RGB(255, 255, 255);
 pub const QT_DIM: usize = 15;
 pub const STEP: usize = 1;
+pub const ARENA_SIZE: usize = 1_000_000;

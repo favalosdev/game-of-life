@@ -4,7 +4,7 @@ use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
 use std::cmp;
-use crate::config::QT_DIM;
+use crate::config::{QT_DIM, ARENA_SIZE};
 
 type NodeId = usize;
 
@@ -66,12 +66,13 @@ pub struct QuadTree {
     root: NodeId,
     b: Vec<usize>,
     s: Vec<usize>,
-    caches: Caches
+    caches: Caches,
+    epochs: usize
 }
 
 impl QuadTree {
     pub fn new() -> Self {
-        let mut nodes = Vec::with_capacity(5_000_000);
+        let mut nodes = Vec::with_capacity(ARENA_SIZE);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
         let dead = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -88,12 +89,14 @@ impl QuadTree {
             root: VOID,
             b: vec![3],
             s: vec![2],
-            caches
+            caches,
+            epochs: 0
         }
     }
 
     pub fn init(&mut self) {
-        self.root = self.zero(QT_DIM)
+        self.root = self.zero(QT_DIM);
+        self.epochs += 1;
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -295,6 +298,8 @@ impl QuadTree {
             return *id;
         }
 
+        self.epochs += 1;
+
         let m_node = &self.nodes[m];
         let level = m_node.k;
 
@@ -400,14 +405,13 @@ impl QuadTree {
         new_id
     } 
 
-    // Returns a path from the parent node to the target
+    // Returns the path from the root node to the target
     fn search(&self, (x, y): (isize, isize)) -> Path {
         let mut path= Vec::with_capacity(QT_DIM + 1);
         self.search_aux(self.root, Quadrant::SW, (x, y), (0, 0), &mut path);
         path
     }
 
-    // Returns parent node and relative position within it
     fn search_aux(
         &self,
         current: NodeId,
