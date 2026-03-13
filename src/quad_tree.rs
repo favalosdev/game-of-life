@@ -4,7 +4,10 @@ use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
 use std::cmp;
-use crate::config::{QT_DIM, ARENA_SIZE};
+
+const ARENA_SIZE: usize = 500_000;
+const QT_DIM: usize = 15;
+const REALLOC_THRESHOLD: f32 = 0.8;
 
 type NodeId = usize;
 
@@ -67,6 +70,7 @@ pub struct QuadTree {
     b: Vec<usize>,
     s: Vec<usize>,
     caches: Caches,
+    lookup_table: FxHashMap<NodeId, NodeId>,
     epochs: usize
 }
 
@@ -90,6 +94,7 @@ impl QuadTree {
             b: vec![3],
             s: vec![2],
             caches,
+            lookup_table: FxHashMap::default(),
             epochs: 0
         }
     }
@@ -190,7 +195,15 @@ impl QuadTree {
     fn new_node(&mut self, node: Node) -> NodeId {
         let id = self.nodes.len();
         self.nodes.push(node);
+
+        if (self.nodes.len() as f32 / ARENA_SIZE as f32) > REALLOC_THRESHOLD {
+            self.reallocate();
+        }
+
         id
+    }
+
+    fn reallocate(&mut self) {
     }
 
     fn join(&mut self, a: NodeId, b: NodeId, c: NodeId, d: NodeId) -> NodeId {
