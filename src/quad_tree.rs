@@ -369,8 +369,9 @@ impl QuadTree {
         next
     }
 
-    pub fn toggle(&mut self, (x, y): (isize, isize)) {
-        let path = self.search((x, y));
+    // Toggle the cell in coordinate (x, y)
+    pub fn toggle(&mut self, target: (isize, isize)) {
+        let path = self.search(target);
         let n = path.len();
 
         if n >= 2 {
@@ -406,9 +407,9 @@ impl QuadTree {
     } 
 
     // Returns the path from the root node to the target
-    fn search(&self, (x, y): (isize, isize)) -> Path {
+    fn search(&self, target: (isize, isize)) -> Path {
         let mut path= Vec::with_capacity(QT_DIM + 1);
-        self.search_aux(self.root, Quadrant::SW, (x, y), (0, 0), &mut path);
+        self.search_aux(self.root, Quadrant::SW, target, (0, 0), &mut path);
         path
     }
 
@@ -416,7 +417,8 @@ impl QuadTree {
         &self,
         current: NodeId,
         quadrant: Quadrant,
-        (x, y): (isize, isize),
+        target: (isize, isize),
+        // Centre
         (c_x, c_y): (isize, isize),
         path: &mut Path
     ) {
@@ -425,15 +427,16 @@ impl QuadTree {
 
         if level > 0 {
             let offset = if level > 1 { 2_isize.pow((level - 2) as u32) } else { 1 };
+            let (x, y ) = target;
 
             if x >= c_x && y >= c_y {
-                self.search_aux(c_node.b, Quadrant::NE, (x, y), (c_x + offset, c_y + offset), path)
+                self.search_aux(c_node.b, Quadrant::NE, target, (c_x + offset, c_y + offset), path)
             } else if x >= c_x && y < c_y {
-                self.search_aux(c_node.d, Quadrant::SE, (x, y), (c_x + offset, c_y - offset), path)
+                self.search_aux(c_node.d, Quadrant::SE, target, (c_x + offset, c_y - offset), path)
             } else if x < c_x && y >= c_y {
-                self.search_aux(c_node.a, Quadrant::NW, (x, y), (c_x - offset, c_y + offset), path)
+                self.search_aux(c_node.a, Quadrant::NW, target, (c_x - offset, c_y + offset), path)
             } else {
-                self.search_aux(c_node.c, Quadrant::SW, (x, y), (c_x - offset, c_y - offset), path)
+                self.search_aux(c_node.c, Quadrant::SW, target, (c_x - offset, c_y - offset), path)
             }
         }
 
