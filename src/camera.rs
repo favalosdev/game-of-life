@@ -21,6 +21,7 @@ impl Camera {
 
         let x_w = q_x + self.x;
         let y_w = q_y + self.y;
+
         (x_w as isize, y_w as isize)
     }
 }
