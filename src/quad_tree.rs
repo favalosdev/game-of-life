@@ -120,7 +120,7 @@ impl QuadTree {
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, ((height as i64) / 2 - data.position.1) as isize))
             .collect::<LinkedList<_>>();
 
-        self.world_to_qt(cells); 
+        self.world_to_qt(cells);
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
@@ -408,7 +408,7 @@ impl QuadTree {
 
     // Returns the path from the root node to the target
     fn search(&self, target: (isize, isize)) -> Path {
-        let mut path= Vec::with_capacity(QT_DIM + 1);
+        let mut path= Vec::with_capacity(cmp::max(QT_DIM, 1) + 1);
         self.search_aux(self.root, Quadrant::SW, target, (0, 0), &mut path);
         path
     }
