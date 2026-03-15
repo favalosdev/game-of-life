@@ -95,7 +95,7 @@ impl QuadTree {
     }
 
     pub fn init(&mut self) {
-        self.root = self.zero(QT_DIM);
+        self.root = self.zero(cmp::max(QT_DIM, 1_usize));
         self.epochs += 1;
     }
 
@@ -124,7 +124,7 @@ impl QuadTree {
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(cells, (0,0), QT_DIM)
+        self.root = self.world_to_qt_aux(cells, (0,0), cmp::max(QT_DIM, 1_usize))
     }
 
     pub fn get_id(&self) -> NodeId {

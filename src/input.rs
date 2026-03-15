@@ -31,7 +31,7 @@ pub fn handle_input(
 ) -> bool {
     let mouse_state: MouseState = event_pump.mouse_state();
     let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
-    let (mx_w, my_w) = camera.from_screen_coords(mx_s, my_s);
+    let (mx_w, my_w) = camera.from_screen_coords((mx_s, my_s));
     let zoom = camera.zoom;
 
     feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
