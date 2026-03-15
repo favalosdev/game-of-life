@@ -418,7 +418,6 @@ impl QuadTree {
         current: NodeId,
         quadrant: Quadrant,
         target: (isize, isize),
-        // Centre
         (c_x, c_y): (isize, isize),
         path: &mut Path
     ) {
