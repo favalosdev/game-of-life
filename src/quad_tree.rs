@@ -398,14 +398,12 @@ impl QuadTree {
         let p_node = &self.nodes[parent];
         let (a, b, c, d) = (p_node.a, p_node.b, p_node.c, p_node.d);
 
-        let new_id = match q {
+        match q {
             Quadrant::NW => self.join(target, b, c, d),
             Quadrant::NE => self.join(a, target, c, d),
             Quadrant::SW => self.join(a, b, target, d),
             Quadrant::SE => self.join(a, b, c, target)
-        };
-
-        new_id
+        }
     } 
 
     // Returns the path from the root node to the target

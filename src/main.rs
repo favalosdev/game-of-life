@@ -30,8 +30,11 @@ use input::{InputState, save_pattern};
 #[command(version, about, long_about = None)]
 struct Args {
     // File-path of the pattern (in .rle format) to load
-    #[arg(short = 'p', long)]
-    pattern_path: Option<String>,
+    #[arg(short = 'i', long)]
+    input: Option<String>,
+    // Path where the new pattern is saved to
+    #[arg(short = 'o', long)]
+    output: Option<String>,
     // Whether the code should run with the HashLife optimization or not
     #[arg(long, default_value_t=false)]
     hash_life: bool 
@@ -56,8 +59,9 @@ fn main() {
 
     let mut camera = Camera::new(DEFAULT_ZOOM, 0, 0);
 
-    let file = match args.pattern_path {
+    let file = match args.input {
         Some(path) => File::open(path).unwrap(),
+        // Default to opening the Gosper Glider Gun pattern
         None => File::open("assets/patterns/gosperglidergun.rle").unwrap(),
     };
 
@@ -146,7 +150,7 @@ fn main() {
                     }
                 },
                 Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                    save_pattern(&last_cells, String::from("dummy"));
+                    save_pattern(&last_cells, args.output.as_ref());
                 }
                 _ => {}
             }

@@ -10,14 +10,20 @@ impl InputState {
     pub fn new() -> Self {
         InputState {
             is_paused: true,
-            show_grid: false,
+            show_grid: false
         }
     }
 }
 
-pub fn save_pattern(cells: &LinkedList<WCoord>, path: String) {
+fn format_output_path(path: Option<&String>) -> String {
+    // TODO: add more sophisticated formatting in here
+    path.map_or(String::from("default.rle"), |v| (*v).clone())
+}
+
+pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>) {
     let mut init = String::new();
-    init += &get_rle_string(cells);
+    let filename = format_output_path(arg);
+    println!("{}", filename);
 }
 
 fn get_rle_string(cells: &LinkedList<WCoord>) -> String {
