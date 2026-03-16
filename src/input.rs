@@ -1,4 +1,7 @@
 use std::collections::LinkedList;
+use std::fs::File;
+use std::io::prelude::*;
+
 use crate::quad_tree:: WCoord;
 
 pub struct InputState {
@@ -20,10 +23,12 @@ fn format_output_path(path: Option<&String>) -> String {
     path.map_or(String::from("default.rle"), |v| (*v).clone())
 }
 
-pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>) {
-    let mut init = String::new();
-    let filename = format_output_path(arg);
-    println!("{}", filename);
+pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>) -> std::io::Result<()> {
+    let init = String::from("dummy_test");
+    let path = format_output_path(arg);
+    let mut file = File::create(path)?;
+    file.write_all(init.as_bytes())?;
+    Ok(())
 }
 
 fn get_rle_string(cells: &LinkedList<WCoord>) -> String {
