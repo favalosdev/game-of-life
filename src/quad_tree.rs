@@ -67,8 +67,8 @@ impl Caches {
 pub struct QuadTree {
     nodes: Vec<Node>,
     root: NodeId,
-    b: Vec<usize>,
-    s: Vec<usize>,
+    pub b: Vec<usize>,
+    pub s: Vec<usize>,
     caches: Caches,
     pub epochs: usize
 }
