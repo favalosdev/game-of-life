@@ -1,6 +1,7 @@
 use std::collections::LinkedList;
 use std::fs::File;
 use std::io::prelude::*;
+use std::cmp;
 
 use crate::quad_tree::WCoord;
 
@@ -37,18 +38,29 @@ pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>, b: &Vec<us
 
 fn get_rle_string(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>) -> String {
     // Do something costly in here
-    let mut copy: Vec<WCoord> = (*cells).clone().into_iter().collect();
+    let mut aux: Vec<WCoord> = (*cells).clone().into_iter().collect();
+    let n = aux.len();
 
-    // Source - https://stackoverflow.com/a/76301320
-    // Posted by user2722968
-    // Retrieved 2026-03-16, License - CC BY-SA 4.0
+    if n == 0 {
+        return String::from("!");
+    }
 
-    copy.sort_by(|a, b| {
-        a.0.cmp(&b.0).then(a.1.cmp(&b.1))
-    });
+    aux.sort_by(|a, b| a.0.cmp(&b.0).then(a.1.cmp(&b.1)));
 
-    let x = 0;
-    let y = 0;
+    let mut last = aux[0];
+
+    // These are guaranteed to be minimum as per the sorting algorithm
+    let min_x = last.0;
+    let min_y = last.1;
+
+    let mut max_x = min_x;
+    let mut max_y = min_y;
+
+    let mut i = 1;
+
+    while i < n {
+        // Actual iteration logic in here
+    }
 
     String::from("dummy")
 }
