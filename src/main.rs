@@ -1,10 +1,13 @@
 extern crate sdl2;
 
-use sdl2::render::Canvas;
-use sdl2::video::Window;
-
 use std::time::{Duration, Instant};
 use std::fs::File;
+
+use sdl2::render::Canvas;
+use sdl2::video::Window;
+use sdl2::event::Event;
+use sdl2::keyboard::{Keycode, Scancode};
+use sdl2::mouse::{MouseState, MouseButton};
 
 use clap::Parser;
 use ca_formats::rle::Rle;
@@ -19,9 +22,9 @@ mod quad_tree;
 use quad_tree::QuadTree;
 use camera::Camera;
 use config::*;
-use feedback::Feedback;
+use feedback::{Feedback, MouseCoords};
 use renderer::draw_all;
-use input::{handle_input, InputState};
+use input::{InputState, save_pattern};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -92,8 +95,61 @@ fn main() {
             }
         }
 
-        if handle_input(&mut event_pump, &mut camera, &mut quad_tree, &mut feedback, &mut input_state) {
-            break 'running;
+        let mouse_state: MouseState = event_pump.mouse_state();
+        let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
+        let (mx_w, my_w) = camera.from_screen_coords((mx_s, my_s));
+        let zoom = camera.zoom;
+
+        feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
+        feedback.cell_count = quad_tree.cell_count();
+
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} |
+                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                    break 'running;
+                },
+                Event::KeyDown { scancode: Some(Scancode::W), .. } => {
+                    camera.y += CAMERA_DELTA / zoom;
+                },
+                Event::KeyDown { scancode: Some(Scancode::A), .. } => {
+                    camera.x -= CAMERA_DELTA / zoom;
+                },
+                Event::KeyDown { scancode: Some(Scancode::S), .. } => {
+                    camera.y -= CAMERA_DELTA / zoom;
+                },
+                Event::KeyDown { scancode: Some(Scancode::D), .. } => {
+                    camera.x += CAMERA_DELTA / zoom;
+                },
+                Event::KeyDown { scancode: Some(Scancode::I), .. } => {
+                    camera.zoom += 1;
+                },
+                Event::KeyDown { scancode: Some(Scancode::O), .. } => {
+                    if camera.zoom > 1 {
+                        camera.zoom -= 1;
+                    }
+                },
+                Event::KeyDown { scancode: Some(Scancode::P), .. } => {
+                    input_state.is_paused = !input_state.is_paused;
+                },
+                Event::KeyDown { scancode: Some(Scancode::E), .. } => {
+                    if input_state.is_paused {
+                        quad_tree.advance(STEP);
+                    }
+                },
+                Event::KeyDown { scancode: Some(Scancode::G), .. } => {
+                    input_state.show_grid = !input_state.show_grid;
+                },
+                Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
+                    if input_state.is_paused {
+                        quad_tree.toggle((mx_w, my_w));
+                    }
+                },
+                Event::KeyDown { scancode: Some(Scancode::V), .. } => {
+                    save_pattern(&last_cells, String::from("dummy"));
+                }
+                _ => {}
+            }
         }
 
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));

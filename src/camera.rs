@@ -1,3 +1,5 @@
+use crate::quad_tree::WCoord;
+
 pub struct Camera {
     pub zoom: i32,
     pub x: i32,
@@ -9,13 +11,13 @@ impl Camera {
         Self { zoom, x, y }
     }
 
-    pub fn from_world_coords(&self, (x_w, y_w): (isize, isize)) -> (i32, i32) {
+    pub fn from_world_coords(&self, (x_w, y_w): WCoord) -> (i32, i32) {
         let x_s = ((x_w as i32) - self.x) * self.zoom;
         let y_s = ((y_w as i32) - self.y) * self.zoom;
         (x_s, y_s)
     }
 
-    pub fn from_screen_coords(&self, (x_s, y_s): (i32, i32)) -> (isize, isize) {
+    pub fn from_screen_coords(&self, (x_s, y_s): (i32, i32)) -> WCoord {
         let q_x = x_s / self.zoom - (x_s < 0) as i32;
         let q_y = y_s / self.zoom - (y_s < 0) as i32;
 
