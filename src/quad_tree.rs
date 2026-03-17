@@ -91,7 +91,7 @@ impl QuadTree {
             nodes,
             root: VOID,
             b: vec![3],
-            s: vec![2],
+            s: vec![2, 3],
             caches,
             epochs: 0
         }
