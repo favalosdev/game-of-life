@@ -23,5 +23,7 @@ target
 
 # Added by cargo
 
+# Added manually
+
 /target
-default.rle
+results/
