@@ -1,7 +1,6 @@
 use std::collections::{LinkedList, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
-use std::cmp;
 
 use crate::quad_tree::WCoord;
 
@@ -65,14 +64,31 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
             s.iter().map(|n| n.to_string()).collect::<String>())
     );
 
+    let lookup = cells.clone().into_iter().collect::<HashSet<WCoord>>();
+    
+    for y in min_y..=max_y {
+        let mut counter = 1;
+        let mut last: bool = lookup.contains(&(y, min_x));
 
-    /* STEPS:
-    1. Calculate bounding box (DONE)
-    2. Iterate and aggregate information accordingly
-    */
+        for x in (min_x+1)..=max_x {
+            let curr = lookup.contains(&(y, x));
 
-    let lookup = cells.iter().collect::<HashSet<&WCoord>>();
+            if curr != last {
+                body.push_str(&format!("{}{}", counter, if last { "o" } else { "b" }));
+                counter = 1;
+            } else {
+                counter += 1;
+            }
 
-    body.push_str(&"!");
+            last = curr;
+        }
+
+        if last {
+            body.push_str(&format!("{}{}", counter, "o"));
+        }
+
+        body.push_str(&(if y != max_y { "$" } else { "!" }));
+    } 
+
     body
 }
