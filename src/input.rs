@@ -35,7 +35,7 @@ pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>, b: &Vec<us
         .collect();
 
     for chunk in chunks.iter() {
-        init.push_str(chunk);
+        init.push_str(&format!("{}\n", chunk));
     }
 
     // Create file and write
