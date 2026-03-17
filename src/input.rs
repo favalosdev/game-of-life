@@ -41,7 +41,7 @@ fn write_run(body: &mut String, counter: i32, alive: bool) {
         body.push_str(&format!("{}", counter));
     }
 
-    body.push_str(&format!("{}", if alive { "o" } else { "b" }));
+    body.push_str(&(if alive { "o" } else { "b" }));
 }
 
 // We know for sure that the cells container isn't empty
