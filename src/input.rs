@@ -46,6 +46,10 @@ fn write_run(body: &mut String, counter: i32, alive: bool) {
 
 // We know for sure that the cells container isn't empty
 fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>) -> String {
+    if cells.is_empty() {
+        return String::new();
+    }
+    
     let mut body = String::new();
 
     let mut xs = cells.iter().map(|c| c.0).collect::<Vec<isize>>();
