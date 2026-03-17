@@ -1,6 +1,8 @@
 use std::collections::{LinkedList, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
+use chrono::Local;
+use std::fs;
 
 use crate::quad_tree::WCoord;
 
@@ -19,8 +21,16 @@ impl InputState {
 }
 
 fn format_output_path(path: Option<&String>) -> String {
-    // TODO: add more sophisticated formatting in here
-    path.map_or(String::from("assets/patterns/default.rle"), |v| (*v).clone())
+    path.cloned().unwrap_or_else(|| {
+        let dir = "results";
+
+        if let Err(e) = fs::create_dir_all(dir) {
+            eprintln!("Failed to create directory '{}': {}", dir, e);
+        }
+
+        let ts = Local::now().format("%Y%m%d_%H%M%S");
+        format!("{}/gol_{}.rle", dir, ts)
+    })
 }
 
 fn get_bounding_box(cells: &LinkedList<WCoord>) -> (isize, isize, isize, isize) {
