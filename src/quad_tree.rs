@@ -4,7 +4,9 @@ use literal::list;
 use ca_formats::rle::Rle;
 use ca_formats::Input;
 use std::cmp;
-use crate::config::{QT_DIM, ARENA_SIZE};
+
+const QT_DIM: usize = 15;
+const ARENA_SIZE: usize = 500_000;
 
 type NodeId = usize;
 
@@ -27,6 +29,7 @@ enum Quadrant {
 }
 
 type Path = Vec<(NodeId, Quadrant)>;
+pub type WCoord = (isize, isize);
 
 const VOID: NodeId = 0;
 const DEAD: NodeId = 1;
@@ -64,10 +67,10 @@ impl Caches {
 pub struct QuadTree {
     nodes: Vec<Node>,
     root: NodeId,
-    b: Vec<usize>,
-    s: Vec<usize>,
     caches: Caches,
-    epochs: usize
+    pub b: Vec<usize>,
+    pub s: Vec<usize>,
+    pub epochs: usize
 }
 
 impl QuadTree {
@@ -96,7 +99,6 @@ impl QuadTree {
 
     pub fn init(&mut self) {
         self.root = self.zero(cmp::max(QT_DIM, 1_usize));
-        self.epochs += 1;
     }
 
     pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
@@ -134,8 +136,8 @@ impl QuadTree {
     // Convert (x,y) to QuadTree
     fn world_to_qt_aux(
         &mut self,
-        cells: LinkedList<(isize, isize)>,
-        (c_x, c_y): (isize, isize),
+        cells: LinkedList<WCoord>,
+        (c_x, c_y): WCoord,
         level: usize 
     ) -> NodeId {
         if cells.is_empty() {
@@ -370,7 +372,7 @@ impl QuadTree {
     }
 
     // Toggle the cell in coordinate (x, y)
-    pub fn toggle(&mut self, target: (isize, isize)) {
+    pub fn toggle(&mut self, target: WCoord) {
         let path = self.search(target);
         let n = path.len();
 
@@ -396,18 +398,16 @@ impl QuadTree {
         let p_node = &self.nodes[parent];
         let (a, b, c, d) = (p_node.a, p_node.b, p_node.c, p_node.d);
 
-        let new_id = match q {
+        match q {
             Quadrant::NW => self.join(target, b, c, d),
             Quadrant::NE => self.join(a, target, c, d),
             Quadrant::SW => self.join(a, b, target, d),
             Quadrant::SE => self.join(a, b, c, target)
-        };
-
-        new_id
+        }
     } 
 
     // Returns the path from the root node to the target
-    fn search(&self, target: (isize, isize)) -> Path {
+    fn search(&self, target: WCoord) -> Path {
         let mut path= Vec::with_capacity(cmp::max(QT_DIM, 1) + 1);
         self.search_aux(self.root, Quadrant::SW, target, (0, 0), &mut path);
         path
@@ -417,8 +417,8 @@ impl QuadTree {
         &self,
         current: NodeId,
         quadrant: Quadrant,
-        target: (isize, isize),
-        (c_x, c_y): (isize, isize),
+        target: WCoord,
+        (c_x, c_y): WCoord,
         path: &mut Path
     ) {
         let c_node = &self.nodes[current];
@@ -442,7 +442,7 @@ impl QuadTree {
         path.push((current, quadrant));
     }
 
-    pub fn qt_to_world(&self) -> LinkedList<(isize, isize)> {
+    pub fn qt_to_world(&self) -> LinkedList<WCoord> {
         let mut points = list![];
         self.qt_to_world_aux(self.root, (0, 0), &mut points);
         points
@@ -451,8 +451,8 @@ impl QuadTree {
     fn qt_to_world_aux(
         &self,
         root: NodeId,
-        (c_x, c_y): (isize, isize),
-        points: &mut LinkedList<(isize, isize)>
+        (c_x, c_y): WCoord,
+        points: &mut LinkedList<WCoord>
     ) {
         let r_node= &self.nodes[root];
         let level = r_node.k;
