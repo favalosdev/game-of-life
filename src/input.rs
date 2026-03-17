@@ -36,6 +36,14 @@ pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>, b: &Vec<us
     Ok(())
 }
 
+fn write_run(body: &mut String, counter: i32, alive: bool) {
+    if counter > 1 {
+        body.push_str(&format!("{}", counter));
+    }
+
+    body.push_str(&format!("{}", if alive { "o" } else { "b" }));
+}
+
 // We know for sure that the cells container isn't empty
 fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>) -> String {
     let mut body = String::new();
@@ -74,11 +82,7 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
             let curr = lookup.contains(&(x, y));
 
             if curr != last {
-                if counter > 1 {
-                    body.push_str(&format!("{}", counter));
-                }
-
-                body.push_str(&format!("{}", if last { "o" } else { "b" }));
+                write_run(&mut body, counter, last);
                 counter = 1;
             } else {
                 counter += 1;
@@ -88,11 +92,7 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
         }
 
         if last {
-            if counter > 1 {
-                body.push_str(&format!("{}", counter));
-            }
-
-            body.push_str(&"o");
+            write_run(&mut body, counter, true);
         }
 
         body.push_str(&(if y != min_y { "$" } else { "!" }));
