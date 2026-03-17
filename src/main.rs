@@ -152,7 +152,7 @@ fn main() {
                 Event::KeyDown { scancode: Some(Scancode::V), .. } => {
                     // Just ignore the Result type for now
                     if input_state.is_paused {
-                        save_pattern(&last_cells, args.output.as_ref(), &(quad_tree.b), &(quad_tree.s)).unwrap();
+                        save_pattern(&last_cells, args.output.as_ref(), &quad_tree.b, &quad_tree.s).unwrap();
                     }
                 }
                 _ => {}
