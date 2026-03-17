@@ -62,7 +62,7 @@ fn main() {
     let file = match args.input {
         Some(path) => File::open(path).unwrap(),
         // Default to opening the Gosper Glider Gun pattern
-        None => File::open("assets/patterns/default.rle").unwrap(),
+        None => File::open("assets/patterns/hwss.rle").unwrap(),
     };
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
