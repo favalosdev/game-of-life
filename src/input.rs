@@ -1,4 +1,4 @@
-use std::collections::LinkedList;
+use std::collections::{LinkedList, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
 use std::cmp;
@@ -37,32 +37,21 @@ pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>, b: &Vec<us
     Ok(())
 }
 
+// We know for sure that the cells container isn't empty
 fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>) -> String {
-    // Do something costly in here
     let mut body = String::new();
 
-    /* STEPS:
-    1. Calculate bounding box
-    2. Iterate and aggregate information accordingly
-    */
-
-    let mut aux = (*cells).clone().into_iter().collect::<Vec<WCoord>>();
-    let n = aux.len();
-
-    if n == 0 {
-        return String::from("!");
-    }
-
-    aux.sort_by(|a,  b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-
-    let mut xs = aux.iter().map(|c| c.0).collect::<Vec<isize>>();
+    let mut xs = cells.iter().map(|c| c.0).collect::<Vec<isize>>();
     xs.sort_by(|a, b| a.cmp(b));
+
+    let mut ys = cells.iter().map(|c| c.1).collect::<Vec<isize>>();
+    ys.sort_by(|a, b| a.cmp(b));
 
     let min_x = xs[0];
     let max_x = *(xs.last().unwrap());
 
-    let min_y = aux.last().unwrap().1;
-    let max_y = aux[0].1;
+    let min_y = ys[0];
+    let max_y = *(ys.last().unwrap());
 
     let span_x = max_x - min_x + 1;
     let span_y = max_y - min_y + 1;
@@ -75,6 +64,14 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
             b.iter().map(|n| n.to_string()).collect::<String>(),
             s.iter().map(|n| n.to_string()).collect::<String>())
     );
+
+
+    /* STEPS:
+    1. Calculate bounding box (DONE)
+    2. Iterate and aggregate information accordingly
+    */
+
+    let lookup = cells.iter().collect::<HashSet<&WCoord>>();
 
     body.push_str(&"!");
     body
