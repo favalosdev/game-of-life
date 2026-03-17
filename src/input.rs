@@ -20,19 +20,6 @@ impl InputState {
     }
 }
 
-fn format_output_path(path: Option<&String>) -> String {
-    path.cloned().unwrap_or_else(|| {
-        let dir = "results";
-
-        if let Err(e) = fs::create_dir_all(dir) {
-            eprintln!("Failed to create directory '{}': {}", dir, e);
-        }
-
-        let ts = Local::now().format("%Y%m%d_%H%M%S");
-        format!("{}/gol_{}.rle", dir, ts)
-    })
-}
-
 fn get_bounding_box(cells: &LinkedList<WCoord>) -> (isize, isize, isize, isize) {
     let mut xs = cells.iter().map(|c| c.0).collect::<Vec<isize>>();
     xs.sort_by(|a, b| a.cmp(b));
@@ -47,6 +34,14 @@ fn get_bounding_box(cells: &LinkedList<WCoord>) -> (isize, isize, isize, isize) 
     let max_y = *(ys.last().unwrap());
 
     (min_x, max_x, min_y, max_y)
+}
+
+fn write_run(body: &mut String, counter: i32, alive: bool) {
+    if counter > 1 {
+        body.push_str(&format!("{}", counter));
+    }
+
+    body.push_str(&(if alive { "o" } else { "b" }));
 }
 
 // We know for sure that the cells container isn't empty
@@ -99,6 +94,19 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
     body
 }
 
+fn format_output_path(path: Option<&String>) -> String {
+    path.cloned().unwrap_or_else(|| {
+        let dir = "results";
+
+        if let Err(e) = fs::create_dir_all(dir) {
+            eprintln!("Failed to create directory '{}': {}", dir, e);
+        }
+
+        let ts = Local::now().format("%Y%m%d_%H%M%S");
+        format!("{}/gol_{}.rle", dir, ts)
+    })
+}
+
 pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>, b: &Vec<usize>, s: &Vec<usize>) -> std::io::Result<()> {
     let mut init = String::new();
 
@@ -117,12 +125,4 @@ pub fn save_pattern(cells: &LinkedList<WCoord>, arg: Option<&String>, b: &Vec<us
     file.write_all(init.as_bytes()).unwrap();
 
     Ok(())
-}
-
-fn write_run(body: &mut String, counter: i32, alive: bool) {
-    if counter > 1 {
-        body.push_str(&format!("{}", counter));
-    }
-
-    body.push_str(&(if alive { "o" } else { "b" }));
 }
