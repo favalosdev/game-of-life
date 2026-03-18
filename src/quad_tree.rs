@@ -126,7 +126,7 @@ impl QuadTree {
     }
 
     pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(cells, (0,0), cmp::max(QT_DIM, 1_usize))
+        self.root = self.world_to_qt_aux(&cells, (0,0), cmp::max(QT_DIM, 1_usize))
     }
 
     pub fn get_id(&self) -> NodeId {
@@ -136,14 +136,14 @@ impl QuadTree {
     // Convert (x,y) to QuadTree
     fn world_to_qt_aux(
         &mut self,
-        cells: LinkedList<WCoord>,
+        cells: &LinkedList<WCoord>,
         (c_x, c_y): WCoord,
         level: usize 
     ) -> NodeId {
         if cells.is_empty() {
             self.zero(level)
         } else if level == 1 {
-            let lookup = cells.iter().collect::<HashSet<_>>();
+            let lookup: HashSet<&WCoord> = cells.iter().collect();
 
             let a_coords = (c_x - 1, c_y);
             let b_coords = (c_x, c_y);
@@ -181,10 +181,10 @@ impl QuadTree {
             }
 
             let offset = 2_isize.pow((level - 2) as u32);
-            let nw = self.world_to_qt_aux(nw_cells, (c_x - offset, c_y + offset), level - 1);
-            let ne = self.world_to_qt_aux(ne_cells, (c_x + offset, c_y + offset), level - 1);
-            let sw = self.world_to_qt_aux(sw_cells, (c_x - offset, c_y - offset), level - 1);
-            let se = self.world_to_qt_aux(se_cells, (c_x + offset, c_y - offset), level - 1);
+            let nw = self.world_to_qt_aux(&nw_cells, (c_x - offset, c_y + offset), level - 1);
+            let ne = self.world_to_qt_aux(&ne_cells, (c_x + offset, c_y + offset), level - 1);
+            let sw = self.world_to_qt_aux(&sw_cells, (c_x - offset, c_y - offset), level - 1);
+            let se = self.world_to_qt_aux(&se_cells, (c_x + offset, c_y - offset), level - 1);
             self.join(nw, ne, sw, se)
         }
     }
