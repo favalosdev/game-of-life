@@ -151,7 +151,7 @@ fn main() {
                 },
                 Event::KeyDown { scancode: Some(Scancode::V), .. } => {
                     // Just ignore the Result type for now
-                    if input_state.is_paused {
+                    if input_state.is_paused && !last_cells.is_empty() {
                         save_pattern(&last_cells, args.output.as_ref(), &quad_tree.b, &quad_tree.s).unwrap();
                     }
                 }

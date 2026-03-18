@@ -47,12 +47,7 @@ fn write_run(body: &mut String, counter: i32, alive: bool) {
     body.push_str(if alive { "o" } else { "b" });
 }
 
-// We know for sure that the cells container isn't empty
 fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>) -> String {
-    if cells.is_empty() {
-        return String::new();
-    }
-    
     let mut body = String::new();
 
     let (min_x, max_x, min_y, max_y) = get_bounding_box(cells);
