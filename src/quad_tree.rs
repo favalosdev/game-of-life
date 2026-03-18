@@ -371,9 +371,9 @@ impl QuadTree {
     pub fn toggle(&mut self, target: WCoord) {
         let path = self.search(target);
         
-        let (target, q) = path[0];
+        let (leaf, q) = path[0];
         let (parent, _) = path[1];
-        let mut updated = self.set_child(parent, q, if target == ALIVE { DEAD } else { ALIVE });
+        let mut updated = self.set_child(parent, q, if leaf == ALIVE { DEAD } else { ALIVE });
 
         let mut i = 2;
         let n = path.len();
