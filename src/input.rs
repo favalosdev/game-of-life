@@ -68,7 +68,7 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
             s.iter().map(|n| n.to_string()).collect::<String>())
     );
 
-    let lookup = cells.iter().cloned().collect::<HashSet<WCoord>>();
+    let lookup: HashSet<WCoord> = cells.iter().cloned().collect();
     
     for y in (min_y..=max_y).rev() {
         let mut counter = 1;
