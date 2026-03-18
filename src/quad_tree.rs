@@ -370,23 +370,22 @@ impl QuadTree {
     // Toggle the cell in coordinate (x, y)
     pub fn toggle(&mut self, target: WCoord) {
         let path = self.search(target);
+        
+        let (target, q) = path[0];
+        let (parent, _) = path[1];
+        let mut updated = self.set_child(parent, q, if target == ALIVE { DEAD } else { ALIVE });
+
+        let mut i = 2;
         let n = path.len();
 
-        if n >= 2 {
-            let (target, q) = path[0];
-            let (parent, _) = path[1];
-            let mut updated = self.set_child(parent, q, if target == ALIVE { DEAD } else { ALIVE });
-            let mut i = 2;
-
-            while i < n {
-                let (_, q) = path[i-1];
-                let (curr, _) = path[i];
-                updated = self.set_child(curr, q, updated);
-                i += 1;
-            }
-
-            self.root = updated;
+        while i < n {
+            let (_, q) = path[i-1];
+            let (curr, _) = path[i];
+            updated = self.set_child(curr, q, updated);
+            i += 1;
         }
+
+        self.root = updated;
     }
 
     // Aux function to toggle
