@@ -421,7 +421,7 @@ impl QuadTree {
 
         if level > 0 {
             let offset = if level > 1 { 2_isize.pow((level - 2) as u32) } else { 1 };
-            let (x, y ) = target;
+            let (x, y) = target;
 
             if x >= c_x && y >= c_y {
                 self.search_aux(c_node.b, Quadrant::NE, target, (c_x + offset, c_y + offset), path)
