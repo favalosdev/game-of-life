@@ -272,10 +272,6 @@ impl QuadTree {
     }
 
     fn advance_aux(&mut self, root: NodeId, mut n: usize) -> NodeId {
-        if n == 0 {
-            return root;
-        }
-
         let mut nested = root;
         let mut index = 0;
 
