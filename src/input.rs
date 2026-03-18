@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use chrono::Local;
 use std::fs;
+use std::cmp;
 
 use crate::quad_tree::WCoord;
 
@@ -20,19 +21,21 @@ impl InputState {
     }
 }
 
+fn get_min_max(values: LinkedList<isize>) -> (isize, isize) {
+    let mut iter = values.iter();
+    let min = *(iter.next().expect("Values must not be empty"));
+    let mut max = min;
+
+    for v in values {
+        max = cmp::max(max, v)
+    }
+
+    (min, max)
+}
+
 fn get_bounding_box(cells: &LinkedList<WCoord>) -> (isize, isize, isize, isize) {
-    let mut xs = cells.iter().map(|c| c.0).collect::<Vec<isize>>();
-    xs.sort_by(|a, b| a.cmp(b));
-
-    let mut ys = cells.iter().map(|c| c.1).collect::<Vec<isize>>();
-    ys.sort_by(|a, b| a.cmp(b));
-
-    let min_x = xs[0];
-    let max_x = *(xs.last().unwrap());
-
-    let min_y = ys[0];
-    let max_y = *(ys.last().unwrap());
-
+    let (min_x, max_x) = get_min_max(cells.iter().map(|c| c.0).collect());
+    let (min_y, max_y) = get_min_max(cells.iter().map(|c| c.1).collect());
     (min_x, max_x, min_y, max_y)
 }
 
@@ -41,7 +44,7 @@ fn write_run(body: &mut String, counter: i32, alive: bool) {
         body.push_str(&format!("{}", counter));
     }
 
-    body.push_str(&(if alive { "o" } else { "b" }));
+    body.push_str(if alive { "o" } else { "b" });
 }
 
 // We know for sure that the cells container isn't empty
@@ -88,7 +91,7 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
             write_run(&mut body, counter, true);
         }
 
-        body.push_str(&(if y != min_y { "$" } else { "!" }));
+        body.push_str(if y != min_y { "$" } else { "!" });
     } 
 
     body
