@@ -91,7 +91,7 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>)
             write_run(&mut body, counter, true);
         }
 
-        body.push_str(if y != min_y { "$" } else { "!" });
+        body.push_str(if y > min_y { "$" } else { "!" });
     } 
 
     body
