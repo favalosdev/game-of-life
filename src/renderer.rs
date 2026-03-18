@@ -20,10 +20,8 @@ macro_rules! rect(
 
 fn get_rect(camera: &Camera, x_raw: isize, y_raw: isize) -> Rect {
     let (xo_w, yo_w) = (x_raw, y_raw);
-    let (xf_w, yf_w) = (xo_w + 1, yo_w + 1);
-
     let (xo_s, yo_s) = camera.from_world_coords((xo_w, yo_w));
-    let (xf_s, yf_s) = camera.from_world_coords((xf_w, yf_w));
+    let (xf_s, yf_s) = camera.from_world_coords((xo_w + 1, yo_w + 1));
 
     let r_width = xf_s - xo_s;
     let r_height = yf_s - yo_s;
