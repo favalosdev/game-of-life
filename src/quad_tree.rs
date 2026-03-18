@@ -165,18 +165,11 @@ impl QuadTree {
             for (x, y) in cells.iter() {
                 let p = (*x, *y);
 
-                if p.0 >= c_x {
-                    if p.1 >= c_y {
-                        ne_cells.push_back(p);
-                    } else {
-                        se_cells.push_back(p);
-                    }
-                } else {
-                    if p.1 >= c_y {
-                        nw_cells.push_back(p);
-                    } else {
-                        sw_cells.push_back(p);
-                    }
+                match (p.0 >= c_x, p.1 >= c_y) {
+                    (true, true)   => ne_cells.push_back(p),
+                    (true, false)  => se_cells.push_back(p),
+                    (false, true)  => nw_cells.push_back(p),
+                    (false, false) => sw_cells.push_back(p)
                 }
             }
 
@@ -423,14 +416,11 @@ impl QuadTree {
             let offset = if level > 1 { 2_isize.pow((level - 2) as u32) } else { 1 };
             let (x, y) = target;
 
-            if x >= c_x && y >= c_y {
-                self.search_aux(c_node.b, Quadrant::NE, target, (c_x + offset, c_y + offset), path)
-            } else if x >= c_x && y < c_y {
-                self.search_aux(c_node.d, Quadrant::SE, target, (c_x + offset, c_y - offset), path)
-            } else if x < c_x && y >= c_y {
-                self.search_aux(c_node.a, Quadrant::NW, target, (c_x - offset, c_y + offset), path)
-            } else {
-                self.search_aux(c_node.c, Quadrant::SW, target, (c_x - offset, c_y - offset), path)
+            match (x >= c_x, y >= c_y) {
+                (true, true)   => self.search_aux(c_node.b, Quadrant::NE, target, (c_x + offset, c_y + offset), path),
+                (true, false)  => self.search_aux(c_node.d, Quadrant::SE, target, (c_x + offset, c_y - offset), path),
+                (false, true)  => self.search_aux(c_node.a, Quadrant::NW, target, (c_x - offset, c_y + offset), path),
+                (false, false) => self.search_aux(c_node.c, Quadrant::SW, target, (c_x - offset, c_y - offset), path)
             }
         }
 
