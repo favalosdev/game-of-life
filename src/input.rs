@@ -1,9 +1,10 @@
 use std::collections::{LinkedList, HashSet};
 use std::fs::File;
 use std::io::prelude::*;
-use chrono::Local;
 use std::fs;
 use std::cmp;
+
+use chrono::Local;
 
 use crate::quad_tree::WCoord;
 
@@ -36,6 +37,7 @@ fn get_min_max(values: LinkedList<isize>) -> (isize, isize) {
 fn get_bounding_box(cells: &LinkedList<WCoord>) -> (isize, isize, isize, isize) {
     let (min_x, max_x) = get_min_max(cells.iter().map(|c| c.0).collect());
     let (min_y, max_y) = get_min_max(cells.iter().map(|c| c.1).collect());
+
     (min_x, max_x, min_y, max_y)
 }
 
