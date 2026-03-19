@@ -44,13 +44,17 @@ fn main() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
-    let window = video_subsystem.window("Game of Life", WINDOW_WIDTH, WINDOW_HEIGHT)
+    let window = video_subsystem
+        .window("Game of Life", WINDOW_WIDTH, WINDOW_HEIGHT)
         .position_centered()
         .build()
-        .unwrap();
+        .expect("Failed to build window");
 
     let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut canvas: Canvas<Window> = window.into_canvas().build().unwrap();
+    let mut canvas: Canvas<Window> = window
+        .into_canvas()
+        .build()
+        .expect("Failed to create canvas");
 
     let args = Args::parse();
 
@@ -59,11 +63,8 @@ fn main() {
 
     let mut camera = Camera::new(DEFAULT_ZOOM, 0, 0);
 
-    let file = match args.input {
-        Some(path) => File::open(path).unwrap(),
-        // Default to opening the Gosper Glider Gun pattern
-        None => File::open("assets/patterns/gosperglidergun.rle").unwrap()
-    };
+    let input_path  = args.input.unwrap_or(String::from("assets/patterns/gosperglidergun.rle"));
+    let file = File::open(input_path).expect("Unable to open file");
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
 
@@ -152,7 +153,12 @@ fn main() {
                 Event::KeyDown { scancode: Some(Scancode::V), .. } => {
                     // Just ignore the Result type for now
                     if input_state.is_paused && !last_cells.is_empty() {
-                        if let Err(e) = save_pattern(&last_cells, args.output.as_ref(), &quad_tree.b, &quad_tree.s) {
+                        if let Err(e) = save_pattern(
+                            &last_cells,
+                            args.output.as_ref(),
+                            &quad_tree.b,
+                            &quad_tree.s
+                        ) {
                             eprintln!("{}", e);
                         }
                     }
