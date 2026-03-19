@@ -63,7 +63,7 @@ fn main() {
 
     let mut camera = Camera::new(DEFAULT_ZOOM, 0, 0);
 
-    let input_path  = args.input.unwrap_or(String::from("assets/patterns/gosperglidergun.rle"));
+    let input_path  = args.input.unwrap_or(String::from(DEFAULT_PATTERN_PATH));
     let file = File::open(input_path).expect("Unable to open file");
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());

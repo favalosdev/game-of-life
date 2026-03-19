@@ -12,3 +12,4 @@ pub const GRID_COLOR: Color = Color::RGB(64, 64, 64);
 pub const CELL_COLOR: Color = Color::RGB(0, 255, 0);
 pub const FEEDBACK_COLOR: Color = Color::RGB(255, 255, 255);
 pub const STEP: usize = 1;
+pub const DEFAULT_PATTERN_PATH: &str = "assets/patterns/otcametapixel.rle";
