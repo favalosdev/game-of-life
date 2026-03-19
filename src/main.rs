@@ -50,11 +50,8 @@ fn main() {
         .build()
         .expect("Failed to build window");
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut canvas: Canvas<Window> = window
-        .into_canvas()
-        .build()
-        .expect("Failed to create canvas");
+    let mut event_pump = sdl_context.event_pump().expect("Failed to create event pump");
+    let mut canvas: Canvas<Window> = window.into_canvas().build().expect("Failed to create canvas");
 
     let args = Args::parse();
 
