@@ -18,12 +18,8 @@ impl Camera {
     }
 
     pub fn from_screen_coords(&self, (x_s, y_s): (i32, i32)) -> WCoord {
-        let q_x = x_s.div_euclid(self.zoom);
-        let q_y = y_s.div_euclid(self.zoom);
-
-        let x_w = q_x + self.x;
-        let y_w = q_y + self.y;
-
+        let x_w = x_s.div_euclid(self.zoom) + self.x;
+        let y_w = y_s.div_euclid(self.zoom) + self.y;
         (x_w as isize, y_w as isize)
     }
 }
