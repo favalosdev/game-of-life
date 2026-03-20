@@ -148,7 +148,6 @@ fn main() {
                     }
                 },
                 Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                    // Just ignore the Result type for now
                     if input_state.is_paused && !last_cells.is_empty() {
                         if let Err(e) = save_pattern(
                             &last_cells,
