@@ -37,7 +37,6 @@ fn get_min_max(values: LinkedList<isize>) -> (isize, isize) {
 fn get_bounding_box(cells: &LinkedList<WCoord>) -> (isize, isize, isize, isize) {
     let (min_x, max_x) = get_min_max(cells.iter().map(|c| c.0).collect());
     let (min_y, max_y) = get_min_max(cells.iter().map(|c| c.1).collect());
-
     (min_x, max_x, min_y, max_y)
 }
 
