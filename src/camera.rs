@@ -21,10 +21,6 @@ impl Camera {
         let q_x = x_s.div_euclid(self.zoom);
         let q_y = y_s.div_euclid(self.zoom);
 
-        let r_x = x_s.rem_euclid(self.zoom);
-
-        println!("q_x = {}, r_x = {}", q_x, r_x);
-
         let x_w = q_x + self.x;
         let y_w = q_y + self.y;
 
