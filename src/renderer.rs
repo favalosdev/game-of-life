@@ -59,11 +59,9 @@ impl Renderer {
         }
     }
 
-    fn get_rect(&self, x_raw: isize, y_raw: isize) -> Rect {
-        let (xo_w, yo_w) = (x_raw, y_raw);
-
-        let (xo_s, yo_s) = self.camera.from_world_coords((xo_w, yo_w));
-        let (xf_s, yf_s) = self.camera.from_world_coords((xo_w + 1, yo_w + 1));
+    fn get_rect(&self, point: (isize, isize)) -> Rect {
+        let (xo_s, yo_s) = self.camera.from_world_coords(point);
+        let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1));
 
         let r_width = xf_s - xo_s;
         let r_height = yf_s - yo_s;
@@ -74,7 +72,7 @@ impl Renderer {
     fn draw_grid(&mut self, min_x_s: u32, min_y_s: u32) {
         self.canvas.set_draw_color(GRID_COLOR);
 
-        let square= self.get_rect(0, 0);
+        let square= self.get_rect((0, 0));
         let square_width = square.width();
         let square_height = square.height();
 
@@ -103,7 +101,7 @@ impl Renderer {
         let mut min_y_s = WINDOW_HEIGHT;
 
         for (x,y) in cells.iter() {
-            let to_fill = self.get_rect(*x, *y);
+            let to_fill = self.get_rect((*x, *y));
             let _ = self.canvas.fill_rect(to_fill);
 
             if to_fill.x >= 0 {
