@@ -8,8 +8,10 @@ use std::collections::LinkedList;
 use std::cmp;
 
 use crate::camera::Camera;
-use crate::config::*;
+use crate::{config::*, quad_tree, renderer};
 use crate::feedback::Feedback;
+use crate::quad_tree::QuadTree;
+use crate::input::InputState;
 
 // Stolen macros to handle annoying Rects
 macro_rules! rect(
@@ -17,6 +19,31 @@ macro_rules! rect(
         Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
     )
 );
+
+pub struct Renderer {
+    quad_tree: QuadTree,
+    camera: Camera,
+    feedback: Feedback,
+    input_state: InputState
+}
+
+impl Renderer {
+    pub fn new() -> Self {
+        let mut quad_tree = QuadTree::new();
+        quad_tree.init();
+
+        Self {
+            quad_tree,
+            camera: Camera::new(DEFAULT_ZOOM, 0, 0),
+            feedback: Feedback::new(),
+            input_state: InputState::new()
+        }
+    }
+
+    pub fn main_loop(self) {
+        println!("Looping behaviour in here")
+    }
+}
 
 fn get_rect(camera: &Camera, x_raw: isize, y_raw: isize) -> Rect {
     let (xo_w, yo_w) = (x_raw, y_raw);

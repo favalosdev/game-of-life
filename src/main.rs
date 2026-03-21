@@ -9,8 +9,8 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 
-use clap::Parser;
 use ca_formats::rle::Rle;
+use clap::Parser;
 
 mod config;
 mod feedback;
@@ -23,7 +23,7 @@ use quad_tree::QuadTree;
 use camera::Camera;
 use config::*;
 use feedback::{Feedback, MouseCoords};
-use renderer::draw_all;
+use renderer::Renderer;
 use input::{InputState, save_pattern};
 
 #[derive(Parser, Debug)]
@@ -37,7 +37,11 @@ struct Args {
     output: Option<String>,
     // Whether the code should run with the HashLife optimization or not
     #[arg(long, default_value_t=false)]
-    hash_life: bool 
+    hash_life: bool,
+    #[arg(short = 'i', default_value_t=false)]
+    interactive: bool,
+    #[arg(short='g')]
+    generation: Option<usize>
 }
 
 fn main() {
@@ -65,104 +69,123 @@ fn main() {
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
 
-    let mut feedback = Feedback::new();
-    let mut input_state = InputState::new();
+    let renderer = Renderer::new();
 
-    let mut last_game_tick = Instant::now();
-    let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
+    if args.interactive {
+        renderer.main_loop();
 
-    let mut last_qt = quad_tree.get_id();
-    let mut last_cells = quad_tree.qt_to_world();
+        /*
+        let mut feedback = Feedback::new();
+        let mut input_state = InputState::new();
 
-    // Initial render
-    draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
+        let mut last_game_tick = Instant::now();
+        let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
-    'running: loop {
-        let now = Instant::now();
+        let mut last_qt = quad_tree.get_id();
+        let mut last_cells = quad_tree.to_world();
 
-        if now.duration_since(last_game_tick) >= game_interval {
-            last_game_tick = now;
+        // Initial render
+        draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
 
-            let current_qt = quad_tree.get_id();
+        'running: loop {
+            let now = Instant::now();
 
-            if last_qt != quad_tree.get_id() {
-                last_cells = quad_tree.qt_to_world();
-                last_qt = current_qt;
+            if now.duration_since(last_game_tick) >= game_interval {
+                last_game_tick = now;
+
+                let current_qt = quad_tree.get_id();
+
+                if last_qt != quad_tree.get_id() {
+                    last_cells = quad_tree.to_world();
+                    last_qt = current_qt;
+                }
+
+                draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
+
+                if !input_state.is_paused {
+                    quad_tree.advance(STEP);
+                }
             }
 
-            draw_all(&mut canvas, &last_cells, &camera, &feedback, input_state.show_grid);
+            let mouse_state: MouseState = event_pump.mouse_state();
+            let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
+            let (mx_w, my_w) = camera.from_screen_coords((mx_s, my_s));
+            let zoom = camera.zoom;
 
-            if !input_state.is_paused {
-                quad_tree.advance(STEP);
-            }
-        }
+            feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
+            feedback.cell_count = quad_tree.cell_count();
 
-        let mouse_state: MouseState = event_pump.mouse_state();
-        let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
-        let (mx_w, my_w) = camera.from_screen_coords((mx_s, my_s));
-        let zoom = camera.zoom;
-
-        feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
-        feedback.cell_count = quad_tree.cell_count();
-
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running;
-                },
-                Event::KeyDown { scancode: Some(Scancode::W), .. } => {
-                    camera.y += CAMERA_DELTA / zoom;
-                },
-                Event::KeyDown { scancode: Some(Scancode::A), .. } => {
-                    camera.x -= CAMERA_DELTA / zoom;
-                },
-                Event::KeyDown { scancode: Some(Scancode::S), .. } => {
-                    camera.y -= CAMERA_DELTA / zoom;
-                },
-                Event::KeyDown { scancode: Some(Scancode::D), .. } => {
-                    camera.x += CAMERA_DELTA / zoom;
-                },
-                Event::KeyDown { scancode: Some(Scancode::I), .. } => {
-                    camera.zoom += 1;
-                },
-                Event::KeyDown { scancode: Some(Scancode::O), .. } => {
-                    if camera.zoom > 1 {
-                        camera.zoom -= 1;
-                    }
-                },
-                Event::KeyDown { scancode: Some(Scancode::P), .. } => {
-                    input_state.is_paused = !input_state.is_paused;
-                },
-                Event::KeyDown { scancode: Some(Scancode::E), .. } => {
-                    if input_state.is_paused {
-                        quad_tree.advance(STEP);
-                    }
-                },
-                Event::KeyDown { scancode: Some(Scancode::G), .. } => {
-                    input_state.show_grid = !input_state.show_grid;
-                },
-                Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
-                    if input_state.is_paused {
-                        quad_tree.toggle((mx_w, my_w));
-                    }
-                },
-                Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                    if input_state.is_paused && !last_cells.is_empty() {
-                        if let Err(e) = save_pattern(
-                            &last_cells,
-                            args.output.as_ref(),
-                            &quad_tree.b,
-                            &quad_tree.s
-                        ) {
-                            eprintln!("{}", e);
+            for event in event_pump.poll_iter() {
+                match event {
+                    Event::Quit {..} |
+                    Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
+                        break 'running;
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::W), .. } => {
+                        camera.y += CAMERA_DELTA / zoom;
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::A), .. } => {
+                        camera.x -= CAMERA_DELTA / zoom;
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::S), .. } => {
+                        camera.y -= CAMERA_DELTA / zoom;
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::D), .. } => {
+                        camera.x += CAMERA_DELTA / zoom;
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::I), .. } => {
+                        camera.zoom += 1;
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::O), .. } => {
+                        if camera.zoom > 1 {
+                            camera.zoom -= 1;
+                        }
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::P), .. } => {
+                        input_state.is_paused = !input_state.is_paused;
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::E), .. } => {
+                        if input_state.is_paused {
+                            quad_tree.advance(STEP);
+                        }
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::G), .. } => {
+                        input_state.show_grid = !input_state.show_grid;
+                    },
+                    Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
+                        if input_state.is_paused {
+                            quad_tree.toggle((mx_w, my_w));
+                        }
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::V), .. } => {
+                        if input_state.is_paused && !last_cells.is_empty() {
+                            if let Err(e) = save_pattern(
+                                &last_cells,
+                                args.output.as_ref(),
+                                &quad_tree.b,
+                                &quad_tree.s
+                            ) {
+                                eprintln!("{}", e);
+                            }
                         }
                     }
+                    _ => {}
                 }
-                _ => {}
             }
-        }
 
-        std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
+            std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
+        }
+        */
+    } else {
+        quad_tree.advance(args.generation.unwrap());
+
+        if let Err(e) = save_pattern(
+            &quad_tree.to_world(),
+            args.output.as_ref(),
+            &quad_tree.b,
+            &quad_tree.s
+        ) {
+            eprintln!("{}", e); 
+        }
     }
 }
