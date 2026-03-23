@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::collections::LinkedList;
-use std::cmp;
+use std::{cmp, usize};
 
 use std::time::{Duration, Instant};
 
@@ -196,7 +196,7 @@ impl Renderer {
 
             self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
             self.feedback.cell_count = quad_tree.cell_count();
-            self.feedback.epochs = quad_tree.epochs;
+            self.feedback.epochs = cmp::min(quad_tree.epochs, usize::MAX - 1);
 
             for event in self.event_pump.poll_iter() {
                 match event {

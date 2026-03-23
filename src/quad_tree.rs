@@ -266,7 +266,8 @@ impl QuadTree {
 
     pub fn advance(&mut self) {
         if self.hash_life {
-            self.root = self.successor(self.root, None);
+            let nested = self.centre(self.root);
+            self.root = self.successor(nested, None);
             self.epochs += 2_usize.pow((self.nodes[self.root].k as u32) - 2);
         } else {
             self.root = self.advance_aux(self.root, self.step);

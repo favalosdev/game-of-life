@@ -29,12 +29,12 @@ struct Args {
     // Overrides the "interactive" & "gens" parameters
     #[arg(long, default_value_t=false)]
     hash_life: bool,
-    #[arg(short = 't', default_value_t=true)]
+    #[arg(short = 't', long, default_value_t=false)]
     interactive: bool,
-    #[arg(short='g')]
+    #[arg(short='g', long)]
     gens: Option<usize>,
     // Only available in interactive mode
-    #[arg(short='s', default_value_t=1)]
+    #[arg(short='s', long, default_value_t=1)]
     step: usize
 }
 
@@ -42,7 +42,7 @@ fn main() {
     let args = Args::parse();
 
     let mut quad_tree= QuadTree::new(
-        if !args.interactive { args.gens.expect("Gens should be passed as parameter!") } else { args.step },
+        if !args.interactive { args.gens.expect("\"gens\" parameter should not be missing when not in interactive mode!") } else { args.step },
         args.hash_life
     );
 
@@ -59,6 +59,8 @@ fn main() {
         renderer.r#loop(&mut quad_tree, args.output.as_ref());
     } else {
         quad_tree.advance();
+
+        assert!(args.output.is_some(), "Output filename path arg missing!");
 
         if let Err(e) = save_pattern(
             &quad_tree.to_world(),
