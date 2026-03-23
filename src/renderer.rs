@@ -33,7 +33,8 @@ pub struct Renderer {
     feedback: Feedback,
     input_state: InputState,
     event_pump: EventPump,
-    canvas: Canvas<Window>
+    canvas: Canvas<Window>,
+    frac_render: bool
 }
 
 impl Renderer {
@@ -50,18 +51,21 @@ impl Renderer {
         let event_pump = sdl_context.event_pump().map_err(|e| format!("Failed to create event pump: {}", e))?;
         let canvas: Canvas<Window> = window.into_canvas().build().map_err(|e| format!("Failed to create canvas: {}", e))?;
 
-        Ok(Self {
-            camera: Camera::new(DEFAULT_ZOOM, 0, 0),
+        let result = Self {
+            camera: Camera::new(),
             feedback: Feedback::new(),
             input_state: InputState::new(),
             event_pump,
-            canvas
-        })
+            canvas,
+            frac_render: false
+        };
+
+        Ok(result)
     }
 
     fn get_rect(&self, point: WCoord) -> Rect {
-        let (xo_s, yo_s) = self.camera.from_world_coords(point);
-        let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1));
+        let (xo_s, yo_s) = self.camera.from_world_coords(point, self.frac_render);
+        let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1), self.frac_render);
 
         let r_width = xf_s - xo_s;
         let r_height = yf_s - yo_s;
@@ -115,7 +119,7 @@ impl Renderer {
             }
         }
 
-        if self.input_state.show_grid {
+        if self.input_state.show_grid && self.camera.zoom > 6 {
             self.draw_grid(min_x_s, min_y_s)?;
         }
 
@@ -133,10 +137,18 @@ impl Renderer {
 
         let mx = self.feedback.mouse_coords.x;
         let my = self.feedback.mouse_coords.y;
-        let cell_count = self.feedback.cell_count;
-        let epochs = self.feedback.epochs;
 
-        let text = format!("gen: {epochs}, cells: {cell_count}, x: {mx:.2}, y: {my:.2}");
+        let mut text = String::new();
+
+        if self.feedback.epochs < usize::MAX - 1 {
+            text.push_str(&format!("gen: {}", self.feedback.epochs));
+        }
+
+        text.push_str(&format!(" cells: {}", self.feedback.cell_count));
+
+        if !self.frac_render {
+            text.push_str(&format!(" x: {:.2}, y: {:.2}", mx, my));
+        }
 
         // Render a surface, and convert it to a texture bound to the canvas
         let surface = font
@@ -200,11 +212,11 @@ impl Renderer {
             let mouse_state: MouseState = self.event_pump.mouse_state();
             let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
             let (mx_w, my_w) = self.camera.from_screen_coords((mx_s, my_s));
-            let zoom = self.camera.zoom;
 
             self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
             self.feedback.cell_count = quad_tree.cell_count();
             self.feedback.epochs = cmp::min(quad_tree.epochs, usize::MAX - 1);
+            let aux_zoom = if !self.frac_render { self.camera.zoom } else { 1 };
 
             for event in self.event_pump.poll_iter() {
                 match event {
@@ -213,23 +225,38 @@ impl Renderer {
                         break 'running;
                     },
                     Event::KeyDown { scancode: Some(Scancode::W), .. } => {
-                        self.camera.y += CAMERA_DELTA / zoom;
+                        self.camera.pos.1 += CAMERA_DELTA / aux_zoom;
                     },
                     Event::KeyDown { scancode: Some(Scancode::A), .. } => {
-                        self.camera.x -= CAMERA_DELTA / zoom;
+                        self.camera.pos.0 -= CAMERA_DELTA / aux_zoom;
                     },
                     Event::KeyDown { scancode: Some(Scancode::S), .. } => {
-                        self.camera.y -= CAMERA_DELTA / zoom;
+                        self.camera.pos.1 -= CAMERA_DELTA / aux_zoom;
                     },
                     Event::KeyDown { scancode: Some(Scancode::D), .. } => {
-                        self.camera.x += CAMERA_DELTA / zoom;
+                        self.camera.pos.0 += CAMERA_DELTA / aux_zoom;
                     },
                     Event::KeyDown { scancode: Some(Scancode::I), .. } => {
-                        self.camera.zoom += 1;
+                        if !self.frac_render {
+                            self.camera.zoom += 1;
+
+                        } else {
+                            self.camera.frac_zoom += 0.1 * self.camera.frac_zoom;
+
+                            if self.camera.frac_zoom > 0.95 {
+                                self.frac_render = false;
+                            }
+                        }
                     },
                     Event::KeyDown { scancode: Some(Scancode::O), .. } => {
-                        if self.camera.zoom > 1 {
+                        if !self.frac_render {
                             self.camera.zoom -= 1;
+
+                            if self.camera.zoom == 1 {
+                                self.frac_render = true;
+                            }
+                        } else {
+                            self.camera.frac_zoom -= 0.1 * self.camera.frac_zoom;
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
