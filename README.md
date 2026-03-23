@@ -42,7 +42,7 @@ The original [hashlife algorithm](https://conwaylife.com/wiki/HashLife) implemen
 
   `./target/release/game-of-life --input assets/patterns/koksgalaxy.rle --hash-life --output results/hashlife_out.rle`
 
-## Controls
+## Interactive Mode Controls
 
 - **W**: Move the camera upwards
 - **A**: Move the camera to the left
