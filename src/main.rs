@@ -32,7 +32,7 @@ struct Args {
     #[arg(short = 't', default_value_t=true)]
     interactive: bool,
     #[arg(short='g')]
-    generation: Option<usize>
+    gens: Option<usize>
 }
 
 fn main() {
@@ -46,11 +46,12 @@ fn main() {
 
     quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
 
+    // TODO: define in which cases the application should not execute
     if args.interactive {
         let mut renderer = Renderer::new();
         renderer.r#loop(&mut quad_tree, args.output.as_ref());
     } else {
-        quad_tree.advance(args.generation.unwrap());
+        quad_tree.advance(args.gens.unwrap());
 
         if let Err(e) = save_pattern(
             &quad_tree.to_world(),
