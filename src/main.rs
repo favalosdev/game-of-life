@@ -56,7 +56,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     quad_tree.load_pattern(Rle::new_from_file(file)?);
 
-    // TODO: define in which cases the application should not execute
     if args.interactive {
         let mut renderer = Renderer::new()?;
         renderer.r#loop(&mut quad_tree, args.output.as_ref())?;
