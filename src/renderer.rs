@@ -37,26 +37,26 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new() -> Self {
-        let sdl_context = sdl2::init().unwrap();
-        let video_subsystem = sdl_context.video().unwrap();
+    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        let sdl_context = sdl2::init()?;
+        let video_subsystem = sdl_context.video()?;
 
         let window = video_subsystem
             .window("Game of Life", WINDOW_WIDTH, WINDOW_HEIGHT)
             .position_centered()
             .build()
-            .expect("Failed to build window");
+            .map_err(|e| format!("Failed to build window: {}", e))?;
 
-        let event_pump = sdl_context.event_pump().expect("Failed to create event pump");
-        let canvas: Canvas<Window> = window.into_canvas().build().expect("Failed to create canvas");
+        let event_pump = sdl_context.event_pump().map_err(|e| format!("Failed to create event pump: {}", e))?;
+        let canvas: Canvas<Window> = window.into_canvas().build().map_err(|e| format!("Failed to create canvas: {}", e))?;
 
-        Self {
+        Ok(Self {
             camera: Camera::new(DEFAULT_ZOOM, 0, 0),
             feedback: Feedback::new(),
             input_state: InputState::new(),
             event_pump,
             canvas
-        }
+        })
     }
 
     fn get_rect(&self, point: WCoord) -> Rect {
@@ -69,7 +69,7 @@ impl Renderer {
         rect!(xo_s + OFFSET_X, (OFFSET_Y - yo_s) - r_height, r_width, r_height)
     }
 
-    fn draw_grid(&mut self, min_x_s: u32, min_y_s: u32) {
+    fn draw_grid(&mut self, min_x_s: u32, min_y_s: u32) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(GRID_COLOR);
 
         let square= self.get_rect((0, 0));
@@ -82,19 +82,21 @@ impl Renderer {
         let mut x = start_x;
 
         while x <= WINDOW_WIDTH {
-            let _ = self.canvas.draw_line((x as i32, 0), (x as i32, WINDOW_HEIGHT as i32));
+            self.canvas.draw_line((x as i32, 0), (x as i32, WINDOW_HEIGHT as i32))?;
             x += square_width;
         }
 
         let mut y = start_y;
 
         while y <= WINDOW_HEIGHT {
-            let _ = self.canvas.draw_line((0, y as i32), (WINDOW_WIDTH as i32, y as i32));
+            self.canvas.draw_line((0, y as i32), (WINDOW_WIDTH as i32, y as i32))?;
             y += square_height;
         }
+
+        Ok(())
     }
 
-    fn draw_squares(&mut self, cells: &LinkedList<WCoord>) {
+    fn draw_squares(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(CELL_COLOR);
 
         let mut min_x_s = WINDOW_WIDTH;
@@ -102,7 +104,7 @@ impl Renderer {
 
         for (x, y) in cells.iter() {
             let to_fill = self.get_rect((*x, *y));
-            let _ = self.canvas.fill_rect(to_fill);
+            self.canvas.fill_rect(to_fill)?;
 
             if to_fill.x >= 0 {
                 min_x_s = cmp::min(min_x_s, to_fill.x as u32);
@@ -114,17 +116,19 @@ impl Renderer {
         }
 
         if self.input_state.show_grid {
-            self.draw_grid(min_x_s, min_y_s)
+            self.draw_grid(min_x_s, min_y_s)?;
         }
+
+        Ok(())
     }
 
-    fn draw_feedback(&mut self) {
+    fn draw_feedback(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let texture_creator = self.canvas.texture_creator();
-        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).unwrap();
+        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
         let padding = 10;
 
         // Load a font
-        let mut font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20).unwrap();
+        let mut font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
         let mx = self.feedback.mouse_coords.x;
@@ -137,29 +141,30 @@ impl Renderer {
         // Render a surface, and convert it to a texture bound to the canvas
         let surface = font
             .render(&text)
-            .blended(FEEDBACK_COLOR)
-            .unwrap();
+            .blended(FEEDBACK_COLOR)?;
 
         let texture = texture_creator
-            .create_texture_from_surface(&surface)
-            .unwrap();
+            .create_texture_from_surface(&surface)?;
 
         let TextureQuery { width: t_width, height: t_height, .. } = texture.query();
 
         let target = rect!(WINDOW_WIDTH - t_width - padding, WINDOW_HEIGHT - t_height - padding, t_width, t_height);
 
-        self.canvas.copy(&texture, None, Some(target)).unwrap();
+        self.canvas.copy(&texture, None, Some(target))?;
+
+        Ok(())
     }
 
-    fn draw_all(&mut self, cells: &LinkedList<WCoord>) {
+    fn draw_all(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
-        self.draw_squares(cells);
-        self.draw_feedback();
+        self.draw_squares(cells)?;
+        self.draw_feedback()?;
         self.canvas.present();
+        Ok(())
     }
 
-    pub fn r#loop(&mut self, quad_tree: &mut QuadTree, output_path: Option<&String>) {
+    pub fn r#loop(&mut self, quad_tree: &mut QuadTree, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
         let mut last_game_tick = Instant::now();
         let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
@@ -167,7 +172,7 @@ impl Renderer {
         let mut last_cells = quad_tree.to_world();
 
         // Initial render
-        self.draw_all(&last_cells);
+        self.draw_all(&last_cells)?;
 
         'running: loop {
             let now = Instant::now();
@@ -182,7 +187,10 @@ impl Renderer {
                     last_qt = current_qt;
                 }
 
-                self.draw_all(&last_cells);
+                if let Err(e) = self.draw_all(&last_cells) {
+                    eprintln!("Drawing error: {}", e);
+                    continue;
+                }
 
                 if !self.input_state.is_paused {
                     quad_tree.advance();
@@ -258,6 +266,8 @@ impl Renderer {
 
             std::thread::sleep(Duration::new(0, 1_000_000_000u32 / FPS));
         }
+
+        Ok(())
     }
 }
 

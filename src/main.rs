@@ -38,37 +38,40 @@ struct Args {
     step: usize
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    let mut quad_tree= QuadTree::new(
-        if !args.interactive { args.gens.expect("\"gens\" (g)  parameter should not be missing when not in interactive mode!") } else { args.step },
-        args.hash_life
-    );
+    let gens = if !args.interactive {
+        args.gens.ok_or("gens parameter required in non-interactive mode")?
+    } else {
+        args.step
+    };
+
+    let mut quad_tree = QuadTree::new(gens, args.hash_life);
 
     quad_tree.init();
 
-    let input_path  = args.input.unwrap_or(String::from(DEFAULT_PATTERN_PATH));
-    let file = File::open(input_path).expect("Unable to open file");
+    let input_path = args.input.unwrap_or(String::from(DEFAULT_PATTERN_PATH));
+    let file = File::open(&input_path)?;
 
-    quad_tree.load_pattern(Rle::new_from_file(file).unwrap());
+    quad_tree.load_pattern(Rle::new_from_file(file)?);
 
     // TODO: define in which cases the application should not execute
     if args.interactive {
-        let mut renderer = Renderer::new();
-        renderer.r#loop(&mut quad_tree, args.output.as_ref());
+        let mut renderer = Renderer::new()?;
+        renderer.r#loop(&mut quad_tree, args.output.as_ref())?;
     } else {
         quad_tree.advance();
 
-        assert!(args.output.is_some(), "\"output\" arg missing!");
+        let output = args.output.ok_or("output parameter required in non-interactive mode")?;
 
-        if let Err(e) = save_pattern(
+        save_pattern(
             &quad_tree.to_world(),
-            args.output.as_ref(),
+            Some(&output),
             &quad_tree.b,
             &quad_tree.s
-        ) {
-            eprintln!("{}", e); 
-        }
+        )?;
     }
+
+    Ok(())
 }
