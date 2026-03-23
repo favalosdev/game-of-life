@@ -68,13 +68,15 @@ pub struct QuadTree {
     nodes: Vec<Node>,
     root: NodeId,
     caches: Caches,
+    step: usize,
+    hash_life: bool,
     pub b: Vec<usize>,
     pub s: Vec<usize>,
     pub epochs: usize
 }
 
 impl QuadTree {
-    pub fn new() -> Self {
+    pub fn new(step: usize, hash_life: bool) -> Self {
         let mut nodes = Vec::with_capacity(ARENA_SIZE);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -90,9 +92,11 @@ impl QuadTree {
         QuadTree {
             nodes,
             root: VOID,
+            step,
+            hash_life,
+            caches,
             b: vec![3],
             s: vec![2, 3],
-            caches,
             epochs: 0
         }
     }
@@ -122,10 +126,10 @@ impl QuadTree {
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, ((height as i64) / 2 - data.position.1) as isize))
             .collect::<LinkedList<_>>();
 
-        self.world_to_qt(cells);
+        self.build(cells);
     }
 
-    pub fn world_to_qt(&mut self, cells: LinkedList<(isize, isize)>) {
+    pub fn build(&mut self, cells: LinkedList<(isize, isize)>) {
         self.root = self.world_to_qt_aux(&cells, (0,0), cmp::max(QT_DIM, 1_usize))
     }
 
@@ -260,21 +264,28 @@ impl QuadTree {
         self.join(ad, bc, cb, da)
     }
 
-    pub fn advance(&mut self, n: usize) {
-        self.root = self.advance_aux(self.root, n);
+    pub fn advance(&mut self) {
+        if self.hash_life {
+            let nested = self.centre(self.root);
+            self.root = self.successor(nested, None);
+            self.epochs += 2_usize.pow((self.nodes[self.root].k as u32) - 2);
+        } else {
+            self.root = self.advance_aux(self.root, self.step);
+            self.epochs += self.step;
+        }
     }
 
-    fn advance_aux(&mut self, root: NodeId, mut n: usize) -> NodeId {
+    fn advance_aux(&mut self, root: NodeId, mut step: usize) -> NodeId {
         let mut nested = root;
         let mut index = 0;
 
-        while n > 0 {
-            if (n & 1) == 1 {
+        while step > 0 {
+            if (step & 1) == 1 {
                 nested = self.centre(nested);
                 nested = self.successor(nested, Some(index));
             }
 
-            n = n >> 1;
+            step = step >> 1;
             index += 1;
         }
 
@@ -288,8 +299,6 @@ impl QuadTree {
         if let Some(id) = self.caches.successor.get(&(m, j)) {
             return *id;
         }
-
-        self.epochs += 1;
 
         let m_node = &self.nodes[m];
         let level = m_node.k;
@@ -368,14 +377,10 @@ impl QuadTree {
         let (parent, _) = path[1];
         let mut updated = self.set_child(parent, q, if leaf == ALIVE { DEAD } else { ALIVE });
 
-        let mut i = 2;
-        let n = path.len();
-
-        while i < n {
+        for i in 2..path.len() {
             let (_, q) = path[i-1];
             let (curr, _) = path[i];
             updated = self.set_child(curr, q, updated);
-            i += 1;
         }
 
         self.root = updated;
@@ -383,8 +388,7 @@ impl QuadTree {
 
     // Aux function to toggle
     fn set_child(&mut self, parent: NodeId, q: Quadrant, target: NodeId) -> NodeId {
-        let p_node = &self.nodes[parent];
-        let (a, b, c, d) = (p_node.a, p_node.b, p_node.c, p_node.d);
+        let Node { a, b, c, d, .. } = self.nodes[parent];
 
         match q {
             Quadrant::NW => self.join(target, b, c, d),
@@ -396,7 +400,7 @@ impl QuadTree {
 
     // Returns the path from the root node to the target
     fn search(&self, target: WCoord) -> Path {
-        let mut path= Vec::with_capacity(cmp::max(QT_DIM, 1) + 1);
+        let mut path = Vec::with_capacity(cmp::max(QT_DIM, 1) + 1);
         self.search_aux(self.root, Quadrant::SW, target, (0, 0), &mut path);
         path
     }
@@ -427,7 +431,7 @@ impl QuadTree {
         path.push((current, quadrant));
     }
 
-    pub fn qt_to_world(&self) -> LinkedList<WCoord> {
+    pub fn to_world(&self) -> LinkedList<WCoord> {
         let mut points = list![];
         self.qt_to_world_aux(self.root, (0, 0), &mut points);
         points
