@@ -42,7 +42,7 @@ fn main() {
     let args = Args::parse();
 
     let mut quad_tree= QuadTree::new(
-        if args.interactive { args.step } else { args.gens.expect("Gens should be passed as parameter!") },
+        if !args.interactive { args.gens.expect("Gens should be passed as parameter!") } else { args.step },
         args.hash_life
     );
 
