@@ -8,6 +8,7 @@ pub struct MouseCoords {
 pub struct Feedback {
     pub cell_count: usize,
     pub mouse_coords: MouseCoords,
+    pub epochs: usize
 }
 
 impl Feedback {
@@ -17,7 +18,8 @@ impl Feedback {
             mouse_coords: MouseCoords {
                 x: 0,
                 y: 0
-            }
+            },
+            epochs: 0
         }
     }
 }

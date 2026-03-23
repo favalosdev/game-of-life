@@ -262,6 +262,7 @@ impl QuadTree {
 
     pub fn advance(&mut self, n: usize) {
         self.root = self.advance_aux(self.root, n);
+        self.epochs += n;
     }
 
     fn advance_aux(&mut self, root: NodeId, mut n: usize) -> NodeId {
@@ -288,8 +289,6 @@ impl QuadTree {
         if let Some(id) = self.caches.successor.get(&(m, j)) {
             return *id;
         }
-
-        self.epochs += 1;
 
         let m_node = &self.nodes[m];
         let level = m_node.k;

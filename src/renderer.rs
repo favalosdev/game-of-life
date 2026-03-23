@@ -130,8 +130,9 @@ impl Renderer {
         let mx = self.feedback.mouse_coords.x;
         let my = self.feedback.mouse_coords.y;
         let cell_count = self.feedback.cell_count;
+        let epochs = self.feedback.epochs;
 
-        let text = format!("cells: {cell_count}, x: {mx:.2}, y: {my:.2}");
+        let text = format!("gen: {epochs}, cells: {cell_count}, x: {mx:.2}, y: {my:.2}");
 
         // Render a surface, and convert it to a texture bound to the canvas
         let surface = font
@@ -195,6 +196,7 @@ impl Renderer {
 
             self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
             self.feedback.cell_count = quad_tree.cell_count();
+            self.feedback.epochs = quad_tree.epochs;
 
             for event in self.event_pump.poll_iter() {
                 match event {
