@@ -185,7 +185,7 @@ impl Renderer {
                 self.draw_all(&last_cells);
 
                 if !self.input_state.is_paused {
-                    quad_tree.advance(STEP);
+                    quad_tree.advance();
                 }
             }
 
@@ -229,7 +229,7 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if self.input_state.is_paused {
-                            quad_tree.advance(STEP);
+                            quad_tree.advance();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {

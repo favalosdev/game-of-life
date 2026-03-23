@@ -68,13 +68,15 @@ pub struct QuadTree {
     nodes: Vec<Node>,
     root: NodeId,
     caches: Caches,
+    step: usize,
+    hash_life: bool,
     pub b: Vec<usize>,
     pub s: Vec<usize>,
     pub epochs: usize
 }
 
 impl QuadTree {
-    pub fn new() -> Self {
+    pub fn new(step: usize, hash_life: bool) -> Self {
         let mut nodes = Vec::with_capacity(ARENA_SIZE);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -90,9 +92,11 @@ impl QuadTree {
         QuadTree {
             nodes,
             root: VOID,
+            step,
+            hash_life,
+            caches,
             b: vec![3],
             s: vec![2, 3],
-            caches,
             epochs: 0
         }
     }
@@ -260,22 +264,27 @@ impl QuadTree {
         self.join(ad, bc, cb, da)
     }
 
-    pub fn advance(&mut self, n: usize) {
-        self.root = self.advance_aux(self.root, n);
-        self.epochs += n;
+    pub fn advance(&mut self) {
+        if self.hash_life {
+            self.root = self.successor(self.root, None);
+            self.epochs += 2_usize.pow((self.nodes[self.root].k as u32) - 2);
+        } else {
+            self.root = self.advance_aux(self.root, self.step);
+            self.epochs += self.step;
+        }
     }
 
-    fn advance_aux(&mut self, root: NodeId, mut n: usize) -> NodeId {
+    fn advance_aux(&mut self, root: NodeId, mut step: usize) -> NodeId {
         let mut nested = root;
         let mut index = 0;
 
-        while n > 0 {
-            if (n & 1) == 1 {
+        while step > 0 {
+            if (step & 1) == 1 {
                 nested = self.centre(nested);
                 nested = self.successor(nested, Some(index));
             }
 
-            n = n >> 1;
+            step = step >> 1;
             index += 1;
         }
 

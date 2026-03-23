@@ -26,19 +26,26 @@ struct Args {
     // Path where the new pattern is saved to
     #[arg(short = 'o', long)]
     output: Option<String>,
-    // Whether the code should run with the HashLife optimization or not
+    // Overrides the "interactive" & "gens" parameters
     #[arg(long, default_value_t=false)]
     hash_life: bool,
     #[arg(short = 't', default_value_t=true)]
     interactive: bool,
     #[arg(short='g')]
-    gens: Option<usize>
+    gens: Option<usize>,
+    // Only available in interactive mode
+    #[arg(short='s', default_value_t=1)]
+    step: usize
 }
 
 fn main() {
     let args = Args::parse();
 
-    let mut quad_tree= QuadTree::new();
+    let mut quad_tree= QuadTree::new(
+        if args.interactive { args.step } else { args.gens.expect("Gens should be passed as parameter!") },
+        args.hash_life
+    );
+
     quad_tree.init();
 
     let input_path  = args.input.unwrap_or(String::from(DEFAULT_PATTERN_PATH));
@@ -51,7 +58,7 @@ fn main() {
         let mut renderer = Renderer::new();
         renderer.r#loop(&mut quad_tree, args.output.as_ref());
     } else {
-        quad_tree.advance(args.gens.unwrap());
+        quad_tree.advance();
 
         if let Err(e) = save_pattern(
             &quad_tree.to_world(),
