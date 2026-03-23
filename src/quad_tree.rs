@@ -368,14 +368,10 @@ impl QuadTree {
         let (parent, _) = path[1];
         let mut updated = self.set_child(parent, q, if leaf == ALIVE { DEAD } else { ALIVE });
 
-        let mut i = 2;
-        let n = path.len();
-
-        while i < n {
+        for i in 2..path.len() {
             let (_, q) = path[i-1];
             let (curr, _) = path[i];
             updated = self.set_child(curr, q, updated);
-            i += 1;
         }
 
         self.root = updated;
@@ -383,8 +379,7 @@ impl QuadTree {
 
     // Aux function to toggle
     fn set_child(&mut self, parent: NodeId, q: Quadrant, target: NodeId) -> NodeId {
-        let p_node = &self.nodes[parent];
-        let (a, b, c, d) = (p_node.a, p_node.b, p_node.c, p_node.d);
+        let Node { a, b, c, d, .. } = self.nodes[parent];
 
         match q {
             Quadrant::NW => self.join(target, b, c, d),

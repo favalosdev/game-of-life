@@ -16,7 +16,7 @@ use sdl2::mouse::{MouseState, MouseButton};
 
 use crate::config::*;
 use crate::feedback::{Feedback, MouseCoords};
-use crate::quad_tree::QuadTree;
+use crate::quad_tree::{QuadTree, WCoord};
 use crate::input::InputState;
 use crate::save_pattern;
 use crate::camera::Camera;
@@ -59,7 +59,7 @@ impl Renderer {
         }
     }
 
-    fn get_rect(&self, point: (isize, isize)) -> Rect {
+    fn get_rect(&self, point: WCoord) -> Rect {
         let (xo_s, yo_s) = self.camera.from_world_coords(point);
         let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1));
 
@@ -94,13 +94,13 @@ impl Renderer {
         }
     }
 
-    fn draw_squares(&mut self, cells: &LinkedList<(isize, isize)>) {
+    fn draw_squares(&mut self, cells: &LinkedList<WCoord>) {
         self.canvas.set_draw_color(CELL_COLOR);
 
         let mut min_x_s = WINDOW_WIDTH;
         let mut min_y_s = WINDOW_HEIGHT;
 
-        for (x,y) in cells.iter() {
+        for (x, y) in cells.iter() {
             let to_fill = self.get_rect((*x, *y));
             let _ = self.canvas.fill_rect(to_fill);
 
@@ -150,7 +150,7 @@ impl Renderer {
         self.canvas.copy(&texture, None, Some(target)).unwrap();
     }
 
-    fn draw_all(&mut self, cells: &LinkedList<(isize, isize)>) {
+    fn draw_all(&mut self, cells: &LinkedList<WCoord>) {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells);
