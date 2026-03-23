@@ -137,10 +137,18 @@ impl Renderer {
 
         let mx = self.feedback.mouse_coords.x;
         let my = self.feedback.mouse_coords.y;
-        let cell_count = self.feedback.cell_count;
-        let epochs = self.feedback.epochs;
 
-        let text = format!("gen: {epochs}, cells: {cell_count}, x: {mx:.2}, y: {my:.2}");
+        let mut text = String::new();
+
+        if self.feedback.epochs < usize::MAX - 1 {
+            text.push_str(&format!("gen: {}", self.feedback.epochs));
+        }
+
+        text.push_str(&format!(" cells: {}", self.feedback.cell_count));
+
+        if !self.frac_render {
+            text.push_str(&format!(" x: {:.2}, y: {:.2}", mx, my));
+        }
 
         // Render a surface, and convert it to a texture bound to the canvas
         let surface = font
