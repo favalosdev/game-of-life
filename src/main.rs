@@ -42,7 +42,7 @@ fn main() {
     let args = Args::parse();
 
     let mut quad_tree= QuadTree::new(
-        if !args.interactive { args.gens.expect("\"gens\" parameter should not be missing when not in interactive mode!") } else { args.step },
+        if !args.interactive { args.gens.expect("\"gens\" (g)  parameter should not be missing when not in interactive mode!") } else { args.step },
         args.hash_life
     );
 
@@ -60,7 +60,7 @@ fn main() {
     } else {
         quad_tree.advance();
 
-        assert!(args.output.is_some(), "Output filename path arg missing!");
+        assert!(args.output.is_some(), "\"output\" arg missing!");
 
         if let Err(e) = save_pattern(
             &quad_tree.to_world(),
