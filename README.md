@@ -30,7 +30,7 @@ This is a Rust implementation of Conway's Game of Life using SDL2 for graphics, 
 
 - Run Hashlife mode (ignores `--gens`):
 
-  `./target/release/game-of-life --hash-life --input assets/patterns/koksgalaxy.rle --output results/hashlife_out.rle --repeat 3`
+  `./target/release/game-of-life --input assets/patterns/koksgalaxy.rle --output results/hashlife_out.rle --hash-life --repeat 3`
 
 - Run non-interactive simulation with input and gens:
 
