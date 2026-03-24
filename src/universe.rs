@@ -71,15 +71,13 @@ pub struct Universe {
     nodes: Vec<Node>,
     root: NodeId,
     caches: Caches,
-    step: usize,
-    hash_life: bool,
-    pub b: Vec<usize>,
-    pub s: Vec<usize>,
-    pub epochs: usize
+    b: Vec<usize>,
+    s: Vec<usize>,
+    epochs: usize
 }
 
 impl Universe {
-    pub fn new(step: usize, hash_life: bool) -> Self {
+    pub fn new() -> Self {
         let mut nodes = Vec::with_capacity(ARENA_SIZE);
 
         let void = Node::new(0, 0, VOID, VOID, VOID, VOID);
@@ -95,8 +93,6 @@ impl Universe {
         Self {
             nodes,
             root: VOID,
-            step,
-            hash_life,
             caches,
             b: vec![3],
             s: vec![2, 3],
@@ -106,6 +102,18 @@ impl Universe {
 
     pub fn init(&mut self) {
         self.root = self.zero(cmp::max(DIM, 1_usize));
+    }
+
+    pub fn epochs(&self) -> usize {
+        self.epochs
+    }
+
+    pub fn b(&self) -> Vec<usize> {
+        self.b.clone()
+    }
+
+    pub fn s(&self) -> Vec<usize> {
+        self.s.clone()
     }
 
     pub fn load(&mut self, input: String) -> Result<(), Box<dyn std::error::Error>> {
@@ -272,28 +280,28 @@ impl Universe {
         self.join(ad, bc, cb, da)
     }
 
-    pub fn advance(&mut self) {
-        if self.hash_life {
-            let nested = self.centre(self.root);
-            self.root = self.successor(nested, None);
-            self.epochs += 2_usize.pow((self.nodes[self.root].k as u32) - 2);
-        } else {
-            self.root = self.advance_aux(self.root, self.step);
-            self.epochs += self.step;
-        }
+    pub fn hash_life(&mut self) {
+        let nested = self.centre(self.root);
+        self.root = self.successor(nested, None);
+        self.epochs += 2_usize.pow((self.nodes[self.root].k as u32) - 2);
     }
 
-    fn advance_aux(&mut self, root: NodeId, mut step: usize) -> NodeId {
+    pub fn advance(&mut self, gens: usize) {
+        self.root = self.advance_aux(self.root, gens);
+        self.epochs += gens;
+    }
+
+    fn advance_aux(&mut self, root: NodeId, mut gens: usize) -> NodeId {
         let mut nested = root;
         let mut index = 0;
 
-        while step > 0 {
-            if (step & 1) == 1 {
+        while gens > 0 {
+            if (gens & 1) == 1 {
                 nested = self.centre(nested);
                 nested = self.successor(nested, Some(index));
             }
 
-            step = step >> 1;
+            gens = gens >> 1;
             index += 1;
         }
 
