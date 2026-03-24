@@ -239,7 +239,6 @@ impl Renderer {
                     Event::KeyDown { scancode: Some(Scancode::I), .. } => {
                         if !self.frac_render {
                             self.camera.zoom += 1;
-
                         } else {
                             self.camera.frac_zoom += 0.1 * self.camera.frac_zoom;
 
