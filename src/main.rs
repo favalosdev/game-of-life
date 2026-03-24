@@ -7,9 +7,8 @@ mod feedback;
 mod renderer;
 mod input;
 mod camera;
-mod universe;
 
-use universe::Universe;
+use golback::universe::Universe;
 use renderer::Renderer;
 use input::save_pattern;
 

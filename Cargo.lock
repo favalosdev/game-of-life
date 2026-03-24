@@ -205,9 +205,21 @@ dependencies = [
  "ca-formats",
  "chrono",
  "clap",
+ "golback",
  "literal",
  "rustc-hash",
  "sdl2",
+]
+
+[[package]]
+name = "golback"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "165ff6b26ce8f20331807b0a104b90fa53c57d9b4649463da53a1c3b56bd120d"
+dependencies = [
+ "ca-formats",
+ "literal",
+ "rustc-hash",
 ]
 
 [[package]]
