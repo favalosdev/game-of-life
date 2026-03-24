@@ -1,8 +1,6 @@
 # game-of-life
 
-This is a Rust implementation of Conway's Game of Life using SDL2 for graphics, adapted and extended from [this source](https://johnhw.github.io/hashlife/index.md.html).
-
-The original [hashlife algorithm](https://conwaylife.com/wiki/HashLife) implementation has been ported to Rust and enhanced with interactive visualization capabilities.
+This is an interactive Rust applet for visualizing Conway's Game of Life simulations using SDL2 graphics.
 
 ## Running Instructions
 
