@@ -132,7 +132,7 @@ impl Renderer {
             }
         }
 
-        if self.input_state.show_grid && self.camera.zoom > 6 {
+        if self.input_state.show_grid {
             self.draw_grid(min_x_s, min_y_s)?;
         }
 
