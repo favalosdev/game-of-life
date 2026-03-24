@@ -134,18 +134,18 @@ impl Universe {
             _ => {}
         }
 
-        let cells =  pattern
+        let coords  =  pattern
             .map(|cell| cell.unwrap())
             .filter(|data | data.state == 1)
             .map(|data| ((data.position.0 - (width as i64) / 2) as isize, ((height as i64) / 2 - data.position.1) as isize))
             .collect::<LinkedList<_>>();
 
-        self.build(cells);
+        self.from_coords(coords);
         Ok(())
     }
 
-    pub fn build(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(&cells, (0,0), cmp::max(DIM, 1_usize))
+    pub fn from_coords(&mut self, cells: LinkedList<(isize, isize)>) {
+        self.root = self.from_coords_aux(&cells, (0,0), cmp::max(DIM, 1_usize))
     }
 
     // Every universe is uniquely represented by an ID
@@ -154,7 +154,7 @@ impl Universe {
     }
 
     // Convert (x,y) to QuadTree
-    fn world_to_qt_aux(
+    fn from_coords_aux(
         &mut self,
         cells: &LinkedList<WCoord>,
         (c_x, c_y): WCoord,
@@ -194,10 +194,10 @@ impl Universe {
             }
 
             let offset = 2_isize.pow((level - 2) as u32);
-            let nw = self.world_to_qt_aux(&nw_cells, (c_x - offset, c_y + offset), level - 1);
-            let ne = self.world_to_qt_aux(&ne_cells, (c_x + offset, c_y + offset), level - 1);
-            let sw = self.world_to_qt_aux(&sw_cells, (c_x - offset, c_y - offset), level - 1);
-            let se = self.world_to_qt_aux(&se_cells, (c_x + offset, c_y - offset), level - 1);
+            let nw = self.from_coords_aux(&nw_cells, (c_x - offset, c_y + offset), level - 1);
+            let ne = self.from_coords_aux(&ne_cells, (c_x + offset, c_y + offset), level - 1);
+            let sw = self.from_coords_aux(&sw_cells, (c_x - offset, c_y - offset), level - 1);
+            let se = self.from_coords_aux(&se_cells, (c_x + offset, c_y - offset), level - 1);
             self.join(nw, ne, sw, se)
         }
     }
