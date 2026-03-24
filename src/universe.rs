@@ -1,9 +1,12 @@
-use rustc_hash::FxHashMap;
+use std::fs::File;
 use std::collections::{LinkedList, HashSet};
-use literal::list;
-use ca_formats::rle::Rle;
-use ca_formats::Input;
 use std::cmp;
+
+use rustc_hash::FxHashMap;
+
+use literal::list;
+
+use ca_formats::rle::Rle;
 
 const QT_DIM: usize = 15;
 const ARENA_SIZE: usize = 500_000;
@@ -64,7 +67,7 @@ impl Caches {
     }
 }
 
-pub struct QuadTree {
+pub struct Universe {
     nodes: Vec<Node>,
     root: NodeId,
     caches: Caches,
@@ -75,7 +78,7 @@ pub struct QuadTree {
     pub epochs: usize
 }
 
-impl QuadTree {
+impl Universe {
     pub fn new(step: usize, hash_life: bool) -> Self {
         let mut nodes = Vec::with_capacity(ARENA_SIZE);
 
@@ -89,7 +92,7 @@ impl QuadTree {
 
         let caches = Caches::new();
 
-        QuadTree {
+        Self {
             nodes,
             root: VOID,
             step,
@@ -105,7 +108,10 @@ impl QuadTree {
         self.root = self.zero(cmp::max(QT_DIM, 1_usize));
     }
 
-    pub fn load_pattern<T: Input>(&mut self, pattern: Rle<T>) {
+    pub fn load(&mut self, input: String) -> Result<(), Box<dyn std::error::Error>> {
+        let file = File::open(&input)?;
+        let pattern = Rle::new_from_file(file)?;
+
         let header_data = pattern.header_data().unwrap();
         let width = header_data.x;
         let height = header_data.y;
@@ -127,13 +133,15 @@ impl QuadTree {
             .collect::<LinkedList<_>>();
 
         self.build(cells);
+        Ok(())
     }
 
     pub fn build(&mut self, cells: LinkedList<(isize, isize)>) {
         self.root = self.world_to_qt_aux(&cells, (0,0), cmp::max(QT_DIM, 1_usize))
     }
 
-    pub fn get_id(&self) -> NodeId {
+    // Every universe is uniquely represented by an ID
+    pub fn state(&self) -> NodeId {
         self.root
     }
 
@@ -245,7 +253,7 @@ impl QuadTree {
         }
     }
 
-    pub fn cell_count(&self) -> usize {
+    pub fn population(&self) -> usize {
         self.nodes[self.root].n
     }
 
@@ -431,13 +439,13 @@ impl QuadTree {
         path.push((current, quadrant));
     }
 
-    pub fn to_world(&self) -> LinkedList<WCoord> {
+    pub fn to_coords(&self) -> LinkedList<WCoord> {
         let mut points = list![];
-        self.qt_to_world_aux(self.root, (0, 0), &mut points);
+        self.to_coords_aux(self.root, (0, 0), &mut points);
         points
     }
 
-    fn qt_to_world_aux(
+    fn to_coords_aux(
         &self,
         root: NodeId,
         (c_x, c_y): WCoord,
@@ -465,10 +473,10 @@ impl QuadTree {
                 }
             } else {
                 let offset = 2_isize.pow((level - 2) as u32);
-                self.qt_to_world_aux(r_node.a, (c_x - offset, c_y + offset), points);
-                self.qt_to_world_aux(r_node.b, (c_x + offset, c_y + offset), points);
-                self.qt_to_world_aux(r_node.c, (c_x - offset, c_y - offset), points);
-                self.qt_to_world_aux(r_node.d, (c_x + offset, c_y - offset), points);
+                self.to_coords_aux(r_node.a, (c_x - offset, c_y + offset), points);
+                self.to_coords_aux(r_node.b, (c_x + offset, c_y + offset), points);
+                self.to_coords_aux(r_node.c, (c_x - offset, c_y - offset), points);
+                self.to_coords_aux(r_node.d, (c_x + offset, c_y - offset), points);
             }
         }
     }

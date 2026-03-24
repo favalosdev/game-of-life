@@ -16,7 +16,7 @@ use sdl2::mouse::{MouseState, MouseButton};
 
 use crate::config::*;
 use crate::feedback::{Feedback, MouseCoords};
-use crate::quad_tree::{QuadTree, WCoord};
+use crate::universe::{Universe, WCoord};
 use crate::input::InputState;
 use crate::save_pattern;
 use crate::camera::Camera;
@@ -176,15 +176,15 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn r#loop(&mut self, quad_tree: &mut QuadTree, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn r#loop(&mut self, universe: &mut Universe, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
         let mut last_game_tick = Instant::now();
         let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
-        let mut last_qt = quad_tree.get_id();
-        let mut last_cells = quad_tree.to_world();
+        let mut last = universe.state();
+        let mut coords = universe.to_coords();
 
         // Initial render
-        self.draw_all(&last_cells)?;
+        self.draw_all(&coords)?;
 
         'running: loop {
             let now = Instant::now();
@@ -192,20 +192,20 @@ impl Renderer {
             if now.duration_since(last_game_tick) >= game_interval {
                 last_game_tick = now;
 
-                let current_qt = quad_tree.get_id();
+                let curr = universe.state();
 
-                if last_qt != quad_tree.get_id() {
-                    last_cells = quad_tree.to_world();
-                    last_qt = current_qt;
+                if last != universe.state() {
+                    coords = universe.to_coords();
+                    last = curr;
                 }
 
-                if let Err(e) = self.draw_all(&last_cells) {
+                if let Err(e) = self.draw_all(&coords) {
                     eprintln!("Drawing error: {}", e);
                     continue;
                 }
 
                 if !self.input_state.is_paused {
-                    quad_tree.advance();
+                    universe.advance();
                 }
             }
 
@@ -214,8 +214,8 @@ impl Renderer {
             let (mx_w, my_w) = self.camera.from_screen_coords((mx_s, my_s));
 
             self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
-            self.feedback.cell_count = quad_tree.cell_count();
-            self.feedback.epochs = cmp::min(quad_tree.epochs, usize::MAX - 1);
+            self.feedback.cell_count = universe.population();
+            self.feedback.epochs = cmp::min(universe.epochs, usize::MAX - 1);
             let aux_zoom = if !self.frac_render { self.camera.zoom } else { 1 };
 
             for event in self.event_pump.poll_iter() {
@@ -263,7 +263,7 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if self.input_state.is_paused {
-                            quad_tree.advance();
+                            universe.advance();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
@@ -271,16 +271,16 @@ impl Renderer {
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                         if self.input_state.is_paused {
-                            quad_tree.toggle((mx_w, my_w));
+                            universe.toggle((mx_w, my_w));
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                        if self.input_state.is_paused && !last_cells.is_empty() {
+                        if self.input_state.is_paused && !coords.is_empty() {
                             if let Err(e) = save_pattern(
-                                &last_cells,
+                                &coords,
                                 output_path,
-                                &quad_tree.b,
-                                &quad_tree.s
+                                &universe.b,
+                                &universe.s
                             ) {
                                 eprintln!("{}", e);
                             }

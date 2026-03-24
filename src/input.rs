@@ -6,7 +6,7 @@ use std::cmp;
 
 use chrono::Local;
 
-use crate::quad_tree::WCoord;
+use crate::universe::WCoord;
 
 pub struct InputState {
     pub is_paused: bool,

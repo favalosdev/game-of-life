@@ -1,8 +1,5 @@
 extern crate sdl2;
 
-use std::fs::File;
-
-use ca_formats::rle::Rle;
 use clap::Parser;
 
 mod config;
@@ -10,9 +7,9 @@ mod feedback;
 mod renderer;
 mod input;
 mod camera;
-mod quad_tree;
+mod universe;
 
-use quad_tree::QuadTree;
+use universe::Universe;
 use renderer::Renderer;
 use input::save_pattern;
 
@@ -50,28 +47,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         args.step
     };
 
-    let mut quad_tree = QuadTree::new(gens, args.hash_life);
-    quad_tree.init();
-
-    let file = File::open(&args.input)?;
-
-    quad_tree.load_pattern(Rle::new_from_file(file)?);
+    let mut universe = Universe::new(gens, args.hash_life);
+    universe.init();
+    universe.load(args.input)?;
 
     if args.interactive {
         let mut renderer = Renderer::new()?;
-        renderer.r#loop(&mut quad_tree, args.output.as_ref())?;
+        renderer.r#loop(&mut universe, args.output.as_ref())?;
     } else {
         for _ in 1..=args.repeat {
-            quad_tree.advance();
+            universe.advance();
         };
 
         let output = args.output.ok_or("output parameter required in non-interactive mode")?;
 
         save_pattern(
-            &quad_tree.to_world(),
+            &universe.to_coords(),
             Some(&output),
-            &quad_tree.b,
-            &quad_tree.s
+            &universe.b,
+            &universe.s
         )?;
     }
 
