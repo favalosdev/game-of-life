@@ -26,8 +26,8 @@ struct Args {
     #[arg(long, default_value_t=false)]
     hash_life: bool,
     // Amount of times hash-life should be executed in non-interactive mode
-    #[arg(short = 'r', long, default_value_t=1)]
-    repeat: usize,
+    #[arg(short = 'r', long)]
+    repeat: Option<usize>,
     #[arg(short = 't', long, default_value_t=false)]
     interactive: bool,
     #[arg(short='g', long)]
@@ -40,32 +40,31 @@ struct Args {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
-    let gens = if !args.interactive && !args.hash_life {
-        args.gens.ok_or("gens parameter required in non-interactive mode")?
-    } else {
-        // Just ignore whatever falls in here
-        args.step
-    };
-
-    let mut universe = Universe::new(gens, args.hash_life);
+    let mut universe = Universe::new();
     universe.init();
     universe.load(args.input)?;
 
     if args.interactive {
-        let mut renderer = Renderer::new()?;
+        let mut renderer = Renderer::new(args.hash_life, args.step)?;
         renderer.r#loop(&mut universe, args.output.as_ref())?;
     } else {
-        for _ in 1..=args.repeat {
-            universe.advance();
-        };
-
         let output = args.output.ok_or("output parameter required in non-interactive mode")?;
+
+        if args.hash_life {
+            let repeat = args.repeat.ok_or("repeat parameter required when running hashlife in interactive mode")?;
+            for _ in 1..=repeat {
+                universe.hash_life();
+            }
+        } else {
+            let gens = args.gens.ok_or("gens parameter required in non-interactive mode")?;
+            universe.advance(gens);
+        }
 
         save_pattern(
             &universe.to_coords(),
             Some(&output),
-            &universe.b,
-            &universe.s
+            &universe.b(),
+            &universe.s()
         )?;
     }
 

@@ -34,11 +34,22 @@ pub struct Renderer {
     input_state: InputState,
     event_pump: EventPump,
     canvas: Canvas<Window>,
-    frac_render: bool
+    frac_render: bool,
+    hash_life: bool,
+    step: usize
+}
+
+// Stinky aux function
+fn evolve(universe: &mut Universe, hash_life: bool, step: usize) {
+    if hash_life {
+        universe.hash_life();
+    } else {
+        universe.advance(step);
+    }
 }
 
 impl Renderer {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
@@ -57,7 +68,9 @@ impl Renderer {
             input_state: InputState::new(),
             event_pump,
             canvas,
-            frac_render: false
+            frac_render: false,
+            hash_life,
+            step
         };
 
         Ok(result)
@@ -183,6 +196,9 @@ impl Renderer {
         let mut last = universe.state();
         let mut coords = universe.to_coords();
 
+        let step = self.step;
+        let hash_life = self.hash_life;
+
         // Initial render
         self.draw_all(&coords)?;
 
@@ -205,7 +221,7 @@ impl Renderer {
                 }
 
                 if !self.input_state.is_paused {
-                    universe.advance();
+                    evolve(universe, hash_life, step);
                 }
             }
 
@@ -215,7 +231,7 @@ impl Renderer {
 
             self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
             self.feedback.cell_count = universe.population();
-            self.feedback.epochs = cmp::min(universe.epochs, usize::MAX - 1);
+            self.feedback.epochs = cmp::min(universe.epochs(), usize::MAX - 1);
             let aux_zoom = if !self.frac_render { self.camera.zoom } else { 1 };
 
             for event in self.event_pump.poll_iter() {
@@ -263,7 +279,7 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if self.input_state.is_paused {
-                            universe.advance();
+                            evolve(universe, hash_life, step);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
@@ -279,8 +295,8 @@ impl Renderer {
                             if let Err(e) = save_pattern(
                                 &coords,
                                 output_path,
-                                &universe.b,
-                                &universe.s
+                                &universe.b(),
+                                &universe.s()
                             ) {
                                 eprintln!("{}", e);
                             }
