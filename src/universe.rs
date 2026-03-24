@@ -8,7 +8,7 @@ use literal::list;
 
 use ca_formats::rle::Rle;
 
-const QT_DIM: usize = 15;
+const DIM: usize = 15;
 const ARENA_SIZE: usize = 500_000;
 
 type NodeId = usize;
@@ -105,7 +105,7 @@ impl Universe {
     }
 
     pub fn init(&mut self) {
-        self.root = self.zero(cmp::max(QT_DIM, 1_usize));
+        self.root = self.zero(cmp::max(DIM, 1_usize));
     }
 
     pub fn load(&mut self, input: String) -> Result<(), Box<dyn std::error::Error>> {
@@ -137,7 +137,7 @@ impl Universe {
     }
 
     pub fn build(&mut self, cells: LinkedList<(isize, isize)>) {
-        self.root = self.world_to_qt_aux(&cells, (0,0), cmp::max(QT_DIM, 1_usize))
+        self.root = self.world_to_qt_aux(&cells, (0,0), cmp::max(DIM, 1_usize))
     }
 
     // Every universe is uniquely represented by an ID
@@ -408,7 +408,7 @@ impl Universe {
 
     // Returns the path from the root node to the target
     fn search(&self, target: WCoord) -> Path {
-        let mut path = Vec::with_capacity(cmp::max(QT_DIM, 1) + 1);
+        let mut path = Vec::with_capacity(cmp::max(DIM, 1) + 1);
         self.search_aux(self.root, Quadrant::SW, target, (0, 0), &mut path);
         path
     }
