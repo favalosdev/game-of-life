@@ -14,9 +14,10 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 
+use golback::universe::{Universe, WCoord};
+
 use crate::config::*;
 use crate::feedback::{Feedback, MouseCoords};
-use crate::universe::{Universe, WCoord};
 use crate::input::InputState;
 use crate::save_pattern;
 use crate::camera::Camera;
