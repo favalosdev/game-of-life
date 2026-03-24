@@ -132,7 +132,7 @@ impl Renderer {
             }
         }
 
-        if self.input_state.show_grid {
+        if self.input_state.show_grid && !self.frac_render {
             self.draw_grid(min_x_s, min_y_s)?;
         }
 
