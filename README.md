@@ -1,4 +1,4 @@
-# game-of-life
+# golfront
 
 This is an interactive Rust applet for visualizing Conway's Game of Life simulations using SDL2 graphics.
 
