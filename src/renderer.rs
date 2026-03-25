@@ -234,7 +234,8 @@ impl Renderer {
             self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
             self.feedback.cell_count = universe.population();
             self.feedback.epochs = cmp::min(universe.epochs(), usize::MAX - 1);
-            let aux_zoom = if !self.frac_render { self.camera.zoom } else { 1 };
+
+            let zoom_factor = if !self.frac_render { self.camera.zoom } else { 1 };
 
             for event in self.event_pump.poll_iter() {
                 match event {
@@ -243,16 +244,16 @@ impl Renderer {
                         break 'running;
                     },
                     Event::KeyDown { scancode: Some(Scancode::W), .. } => {
-                        self.camera.pos.1 += CAMERA_DELTA / aux_zoom;
+                        self.camera.pos.1 += CAMERA_DELTA / zoom_factor;
                     },
                     Event::KeyDown { scancode: Some(Scancode::A), .. } => {
-                        self.camera.pos.0 -= CAMERA_DELTA / aux_zoom;
+                        self.camera.pos.0 -= CAMERA_DELTA / zoom_factor;
                     },
                     Event::KeyDown { scancode: Some(Scancode::S), .. } => {
-                        self.camera.pos.1 -= CAMERA_DELTA / aux_zoom;
+                        self.camera.pos.1 -= CAMERA_DELTA / zoom_factor;
                     },
                     Event::KeyDown { scancode: Some(Scancode::D), .. } => {
-                        self.camera.pos.0 += CAMERA_DELTA / aux_zoom;
+                        self.camera.pos.0 += CAMERA_DELTA / zoom_factor;
                     },
                     Event::KeyDown { scancode: Some(Scancode::I), .. } => {
                         if !self.frac_render {
@@ -260,7 +261,7 @@ impl Renderer {
                         } else {
                             self.camera.frac_zoom += 0.1 * self.camera.frac_zoom;
 
-                            if self.camera.frac_zoom > 0.95 {
+                            if self.camera.frac_zoom > 0.99 {
                                 self.frac_render = false;
                             }
                         }
@@ -288,7 +289,7 @@ impl Renderer {
                         self.input_state.show_grid = !self.input_state.show_grid;
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
-                        if self.input_state.is_paused {
+                        if self.input_state.is_paused && !self.frac_render {
                             universe.toggle((mx_w, my_w));
                         }
                     },
