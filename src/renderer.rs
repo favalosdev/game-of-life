@@ -234,9 +234,7 @@ impl Renderer {
             }
 
             let mouse_state: MouseState = self.event_pump.mouse_state();
-            let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
-            let (mx_w, my_w) = self.camera.from_screen_coords((mx_s, my_s));
-            self.mouse_coords = (mx_w, my_w);
+            self.mouse_coords = self.camera.from_screen_coords((mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y()));
 
             let zoom_factor = if !self.frac_render { self.camera.zoom } else { 1 };
 
@@ -297,7 +295,7 @@ impl Renderer {
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                         if self.is_paused && !self.frac_render {
-                            self.universe.toggle((mx_w, my_w));
+                            self.universe.toggle(self.mouse_coords);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
