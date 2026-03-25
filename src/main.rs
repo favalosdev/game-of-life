@@ -3,7 +3,6 @@ extern crate sdl2;
 use clap::Parser;
 
 mod config;
-mod feedback;
 mod renderer;
 mod input;
 mod camera;
@@ -44,8 +43,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     universe.load(args.input)?;
 
     if args.interactive {
-        let mut renderer = Renderer::new(args.hash_life, args.step)?;
-        renderer.r#loop(&mut universe, args.output.as_ref())?;
+        let mut renderer = Renderer::new(universe, args.hash_life, args.step)?;
+        renderer.r#loop(args.output.as_ref())?;
     } else {
         let output = args.output.ok_or("output parameter required in non-interactive mode")?;
 

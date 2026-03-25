@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::collections::LinkedList;
 use std::{cmp, usize};
+use literal::list;
 
 use std::time::{Duration, Instant};
 
@@ -17,8 +18,6 @@ use sdl2::mouse::{MouseState, MouseButton};
 use golback::universe::{Universe, WCoord};
 
 use crate::config::*;
-use crate::feedback::{Feedback, MouseCoords};
-use crate::input::InputState;
 use crate::save_pattern;
 use crate::camera::Camera;
 
@@ -28,29 +27,28 @@ macro_rules! rect(
         Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
     )
 );
-
 pub struct Renderer {
+    universe: Universe,
+    // Logical variables
+    hash_life: bool,
+    step: usize,
+    // SDL-2 variables
     camera: Camera,
-    feedback: Feedback,
-    input_state: InputState,
     event_pump: EventPump,
     canvas: Canvas<Window>,
+    // UI/UX variables
     frac_render: bool,
-    hash_life: bool,
-    step: usize
+    history: LinkedList<usize>,
+    is_paused: bool,
+    show_grid: bool,
+    mouse_coords: (isize, isize)
 }
 
 // Stinky aux function
-fn evolve(universe: &mut Universe, hash_life: bool, step: usize) {
-    if hash_life {
-        universe.hash_life();
-    } else {
-        universe.advance(step);
-    }
-}
+
 
 impl Renderer {
-    pub fn new(hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(universe: Universe, hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
@@ -63,18 +61,23 @@ impl Renderer {
         let event_pump = sdl_context.event_pump().map_err(|e| format!("Failed to create event pump: {}", e))?;
         let canvas: Canvas<Window> = window.into_canvas().build().map_err(|e| format!("Failed to create canvas: {}", e))?;
 
-        let result = Self {
+        let instance = Self {
+            universe,
+            hash_life,
+            step,
+            // SDL-2 variables
             camera: Camera::new(),
-            feedback: Feedback::new(),
-            input_state: InputState::new(),
             event_pump,
             canvas,
+            // UI/UX variables
             frac_render: false,
-            hash_life,
-            step
+            history: list![],
+            is_paused: true,
+            show_grid: false,
+            mouse_coords: (0, 0)
         };
 
-        Ok(result)
+        Ok(instance)
     }
 
     fn get_rect(&self, point: WCoord) -> Rect {
@@ -134,7 +137,7 @@ impl Renderer {
         }
 
         // Show even if what you see is completely grey
-        if self.input_state.show_grid {
+        if self.show_grid {
             self.draw_grid(min_x_s, min_y_s)?;
         }
 
@@ -150,16 +153,18 @@ impl Renderer {
         let mut font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
-        let mx = self.feedback.mouse_coords.x;
-        let my = self.feedback.mouse_coords.y;
+        let mx = self.mouse_coords.0;
+        let my = self.mouse_coords.1;
 
         let mut text = String::new();
 
-        if self.feedback.epochs < usize::MAX - 1 {
-            text.push_str(&format!("gen: {}", self.feedback.epochs));
+        let epochs = self.universe.epochs();
+
+        if epochs < usize::MAX - 1 {
+            text.push_str(&format!("gen: {}", epochs));
         }
 
-        text.push_str(&format!(" cells: {}", self.feedback.cell_count));
+        text.push_str(&format!(" cells: {}", self.universe.population()));
 
         if !self.frac_render {
             text.push_str(&format!(" x: {:.2}, y: {:.2}", mx, my));
@@ -191,15 +196,12 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn r#loop(&mut self, universe: &mut Universe, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn r#loop(&mut self, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
         let mut last_game_tick = Instant::now();
         let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
-        let mut last = universe.state();
-        let mut coords = universe.to_coords();
-
-        let step = self.step;
-        let hash_life = self.hash_life;
+        let mut last = self.universe.state();
+        let mut coords = self.universe.to_coords();
 
         // Initial render
         self.draw_all(&coords)?;
@@ -210,10 +212,10 @@ impl Renderer {
             if now.duration_since(last_game_tick) >= game_interval {
                 last_game_tick = now;
 
-                let curr = universe.state();
+                let curr = self.universe.state();
 
-                if last != universe.state() {
-                    coords = universe.to_coords();
+                if last != self.universe.state() {
+                    coords = self.universe.to_coords();
                     last = curr;
                 }
 
@@ -222,18 +224,19 @@ impl Renderer {
                     continue;
                 }
 
-                if !self.input_state.is_paused {
-                    evolve(universe, hash_life, step);
+                if !self.is_paused {
+                    if self.hash_life {
+                        self.universe.hash_life();
+                    } else {
+                        self.universe.advance(self.step);
+                    }
                 }
             }
 
             let mouse_state: MouseState = self.event_pump.mouse_state();
             let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
             let (mx_w, my_w) = self.camera.from_screen_coords((mx_s, my_s));
-
-            self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
-            self.feedback.cell_count = universe.population();
-            self.feedback.epochs = cmp::min(universe.epochs(), usize::MAX - 1);
+            self.mouse_coords = (mx_w, my_w);
 
             let zoom_factor = if !self.frac_render { self.camera.zoom } else { 1 };
 
@@ -278,33 +281,41 @@ impl Renderer {
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
-                        self.input_state.is_paused = !self.input_state.is_paused;
+                        self.is_paused = !self.is_paused;
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
-                        if self.input_state.is_paused {
-                            evolve(universe, hash_life, step);
+                        if !self.is_paused {
+                            if self.hash_life {
+                                self.universe.hash_life();
+                            } else {
+                                self.universe.advance(self.step);
+                            }
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
-                        self.input_state.show_grid = !self.input_state.show_grid;
+                        self.show_grid = !self.show_grid;
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
-                        if self.input_state.is_paused && !self.frac_render {
-                            universe.toggle((mx_w, my_w));
+                        if self.is_paused && !self.frac_render {
+                            self.universe.toggle((mx_w, my_w));
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                        if self.input_state.is_paused && !coords.is_empty() {
+                        if self.is_paused && !coords.is_empty() {
                             if let Err(e) = save_pattern(
                                 &coords,
                                 output_path,
-                                &universe.b(),
-                                &universe.s()
+                                &self.universe.b(),
+                                &self.universe.s()
                             ) {
                                 eprintln!("{}", e);
                             }
                         }
-                    }
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::Y), .. } => {
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::U), .. } => {
+                    },
                     _ => {}
                 }
             }
