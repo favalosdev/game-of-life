@@ -8,20 +8,6 @@ use chrono::Local;
 
 use golback::universe::WCoord;
 
-pub struct InputState {
-    pub is_paused: bool,
-    pub show_grid: bool
-}
-
-impl InputState {
-    pub fn new() -> Self {
-        InputState {
-            is_paused: true,
-            show_grid: false
-        }
-    }
-}
-
 fn get_min_max(values: &LinkedList<isize>) -> Result<(isize, isize), &'static str> {
     if values.is_empty() {
         return Err("Values must not be empty");

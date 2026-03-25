@@ -4,12 +4,12 @@ use clap::Parser;
 
 mod config;
 mod renderer;
-mod input;
+mod rle;
 mod camera;
 
 use golback::universe::Universe;
 use renderer::Renderer;
-use input::save_pattern;
+use rle::save_pattern;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
