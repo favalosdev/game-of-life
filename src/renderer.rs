@@ -133,7 +133,8 @@ impl Renderer {
             }
         }
 
-        if self.input_state.show_grid && !self.frac_render {
+        // Show even if what you see is completely grey
+        if self.input_state.show_grid {
             self.draw_grid(min_x_s, min_y_s)?;
         }
 
