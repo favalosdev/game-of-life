@@ -1,6 +1,6 @@
 use std::path::Path;
 use std::collections::LinkedList;
-use std::{cmp, usize};
+use std::usize;
 use literal::list;
 use sdl2::ttf::Sdl2TtfContext;
 
@@ -127,8 +127,8 @@ impl Renderer {
         self.canvas.set_draw_color(CELL_COLOR);
 
         for (x, y) in cells.iter() {
-            let to_fill = self.get_rect((*x, *y));
-            self.canvas.fill_rect(to_fill)?;
+            let to_draw = self.get_rect((*x, *y));
+            self.canvas.fill_rect(to_draw)?;
         }
 
         Ok(())
@@ -150,9 +150,7 @@ impl Renderer {
             text.push_str(&" x: --, y: --");
         }
 
-        let surface = font
-            .render(&text)
-            .blended(TEXT_COLOR)?;
+        let surface = font.render(&text).blended(TEXT_COLOR)?;
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width, height, .. } = texture.query();
         let padding = 10;
@@ -162,9 +160,7 @@ impl Renderer {
         // Dirty-ass solution
 
         let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
-        let surface = font
-            .render(&text)
-            .blended(TEXT_COLOR)?;
+        let surface = font.render(&text).blended(TEXT_COLOR)?;
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width, height, .. } = texture.query();
         let padding = 10;
@@ -184,13 +180,9 @@ impl Renderer {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells)?;
+        if self.show_grid { self.draw_grid()?; }
         self.draw_sim_info()?;
         self.draw_sim_state()?;
-
-        if self.show_grid {
-            self.draw_grid();
-        }
-
         self.canvas.present();
         Ok(())
     }
