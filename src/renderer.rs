@@ -2,11 +2,12 @@ use std::path::Path;
 use std::collections::LinkedList;
 use std::{cmp, usize};
 use literal::list;
+use sdl2::ttf::Sdl2TtfContext;
 
 use std::time::{Duration, Instant};
 
-use sdl2::render::Canvas;
-use sdl2::video::Window;
+use sdl2::render::{Canvas, TextureCreator};
+use sdl2::video::{Window, WindowContext};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::TextureQuery;
@@ -35,6 +36,8 @@ pub struct Renderer {
     // SDL-2 variables
     event_pump: EventPump,
     canvas: Canvas<Window>,
+    texture_creator: TextureCreator<WindowContext>,
+    ttf_context: Sdl2TtfContext,
     // UI/UX variables
     camera: Camera,
     frac_render: bool,
@@ -57,6 +60,8 @@ impl Renderer {
 
         let event_pump = sdl_context.event_pump().map_err(|e| format!("Failed to create event pump: {}", e))?;
         let canvas: Canvas<Window> = window.into_canvas().build().map_err(|e| format!("Failed to create canvas: {}", e))?;
+        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+        let texture_creator = canvas.texture_creator();
 
         let instance = Self {
             universe,
@@ -65,6 +70,8 @@ impl Renderer {
             // SDL-2 variables
             event_pump,
             canvas,
+            ttf_context,
+            texture_creator,
             // UI/UX variables
             camera: Camera::new(),
             frac_render: false,
@@ -141,19 +148,12 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_feedback(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let texture_creator = self.canvas.texture_creator();
-        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-        let padding = 10;
-
+    fn draw_sim_info(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Load a font
-        let mut font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
+        let mut font = self.ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
-        let (mx, my) = self.mouse_coords;
-
         let mut text = String::new();
-
         let epochs = self.universe.epochs();
 
         if epochs < usize::MAX {
@@ -163,6 +163,7 @@ impl Renderer {
         text.push_str(&format!(" cells: {}", self.universe.population()));
 
         if !self.frac_render {
+            let (mx, my) = self.mouse_coords;
             text.push_str(&format!(" x: {:.2}, y: {:.2}", mx, my));
         } else {
             text.push_str(&" x: --, y: --");
@@ -171,14 +172,32 @@ impl Renderer {
         // Render a surface, and convert it to a texture bound to the canvas
         let surface = font
             .render(&text)
-            .blended(FEEDBACK_COLOR)?;
+            .blended(TEXT_COLOR)?;
 
-        let texture = texture_creator
-            .create_texture_from_surface(&surface)?;
-
+        let texture = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width: t_width, height: t_height, .. } = texture.query();
-
+        let padding = 10;
         let target = rect!(WINDOW_WIDTH - t_width - padding, WINDOW_HEIGHT - t_height - padding, t_width, t_height);
+
+        self.canvas.copy(&texture, None, Some(target))?;
+
+        Ok(())
+    }
+
+    fn draw_sim_state(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let mut font = self.ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
+        font.set_style(sdl2::ttf::FontStyle::BOLD);
+
+        let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
+
+        let surface = font
+            .render(&text)
+            .blended(TEXT_COLOR)?;
+
+        let texture = self.texture_creator.create_texture_from_surface(&surface)?;
+        let TextureQuery { width: t_width, height: t_height, .. } = texture.query();
+        let padding = 10;
+        let target = rect!(padding, WINDOW_HEIGHT - t_height - padding, t_width, t_height);
 
         self.canvas.copy(&texture, None, Some(target))?;
 
@@ -189,7 +208,8 @@ impl Renderer {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells)?;
-        self.draw_feedback()?;
+        self.draw_sim_info()?;
+        self.draw_sim_state()?;
         self.canvas.present();
         Ok(())
     }
