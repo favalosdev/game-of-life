@@ -281,7 +281,7 @@ impl Renderer {
                         self.is_paused = !self.is_paused;
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
-                        if !self.is_paused {
+                        if self.is_paused {
                             if self.hash_life {
                                 self.universe.hash_life();
                             } else {
