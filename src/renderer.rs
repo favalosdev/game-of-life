@@ -182,7 +182,7 @@ impl Renderer {
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width, height, .. } = texture.query();
         let padding = 10;
-        let target = rect!(padding, WINDOW_HEIGHT - padding - height, width, height);
+        let target = rect!(padding, (WINDOW_HEIGHT - padding) - height, width, height);
         self.canvas.copy(&texture, None, Some(target))?;
 
         Ok(())
