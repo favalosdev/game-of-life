@@ -33,10 +33,10 @@ pub struct Renderer {
     hash_life: bool,
     step: usize,
     // SDL-2 variables
-    camera: Camera,
     event_pump: EventPump,
     canvas: Canvas<Window>,
     // UI/UX variables
+    camera: Camera,
     frac_render: bool,
     history: LinkedList<NodeId>,
     is_paused: bool,
@@ -63,10 +63,10 @@ impl Renderer {
             hash_life,
             step,
             // SDL-2 variables
-            camera: Camera::new(),
             event_pump,
             canvas,
             // UI/UX variables
+            camera: Camera::new(),
             frac_render: false,
             history: list![],
             is_paused: true,
@@ -90,7 +90,7 @@ impl Renderer {
     fn draw_grid(&mut self, min_x_s: u32, min_y_s: u32) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(GRID_COLOR);
 
-        let square= self.get_rect((0, 0));
+        let square = self.get_rect((0, 0));
         let square_width = square.width();
         let square_height = square.height();
 
