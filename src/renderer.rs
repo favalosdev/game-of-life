@@ -44,9 +44,6 @@ pub struct Renderer {
     mouse_coords: (isize, isize)
 }
 
-// Stinky aux function
-
-
 impl Renderer {
     pub fn new(universe: Universe, hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
@@ -168,6 +165,8 @@ impl Renderer {
 
         if !self.frac_render {
             text.push_str(&format!(" x: {:.2}, y: {:.2}", mx, my));
+        } else {
+            text.push_str(&" x: --, y: --");
         }
 
         // Render a surface, and convert it to a texture bound to the canvas
@@ -310,9 +309,9 @@ impl Renderer {
                             }
                         }
                     },
-                    Event::KeyDown { scancode: Some(Scancode::Y), .. } => {
+                    Event::KeyDown { scancode: Some(Scancode::J), .. } => {
                     },
-                    Event::KeyDown { scancode: Some(Scancode::U), .. } => {
+                    Event::KeyDown { scancode: Some(Scancode::K), .. } => {
                     },
                     _ => {}
                 }
