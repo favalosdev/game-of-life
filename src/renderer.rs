@@ -154,12 +154,7 @@ impl Renderer {
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
         let mut text = String::new();
-        let epochs = self.universe.epochs();
-
-        if epochs < usize::MAX {
-            text.push_str(&format!("gen: {}", epochs));
-        }
-
+        text.push_str(&format!("gen: {}", self.universe.epochs()));
         text.push_str(&format!(" cells: {}", self.universe.population()));
 
         if !self.frac_render {
@@ -169,16 +164,25 @@ impl Renderer {
             text.push_str(&" x: --, y: --");
         }
 
-        // Render a surface, and convert it to a texture bound to the canvas
         let surface = font
             .render(&text)
             .blended(TEXT_COLOR)?;
-
-        let texture = self.texture_creator.create_texture_from_surface(&surface)?;
-        let TextureQuery { width: t_width, height: t_height, .. } = texture.query();
+        let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
+        let TextureQuery { width, height, .. } = texture.query();
         let padding = 10;
-        let target = rect!(WINDOW_WIDTH - t_width - padding, WINDOW_HEIGHT - t_height - padding, t_width, t_height);
+        let target = rect!((WINDOW_WIDTH - padding) - width, (WINDOW_HEIGHT - padding) - height, width, height);
+        self.canvas.copy(&texture, None, Some(target))?;
 
+        // Dirty-ass solution
+
+        let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
+        let surface = font
+            .render(&text)
+            .blended(TEXT_COLOR)?;
+        let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
+        let TextureQuery { width, height, .. } = texture.query();
+        let padding = 10;
+        let target = rect!(padding, WINDOW_HEIGHT - padding - height, width, height);
         self.canvas.copy(&texture, None, Some(target))?;
 
         Ok(())
@@ -187,20 +191,6 @@ impl Renderer {
     fn draw_sim_state(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let mut font = self.ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
-
-        let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
-
-        let surface = font
-            .render(&text)
-            .blended(TEXT_COLOR)?;
-
-        let texture = self.texture_creator.create_texture_from_surface(&surface)?;
-        let TextureQuery { width: t_width, height: t_height, .. } = texture.query();
-        let padding = 10;
-        let target = rect!(padding, WINDOW_HEIGHT - t_height - padding, t_width, t_height);
-
-        self.canvas.copy(&texture, None, Some(target))?;
-
         Ok(())
     }
 
