@@ -157,7 +157,7 @@ impl Renderer {
 
         let epochs = self.universe.epochs();
 
-        if epochs < usize::MAX - 1 {
+        if epochs < usize::MAX {
             text.push_str(&format!("gen: {}", epochs));
         }
 
