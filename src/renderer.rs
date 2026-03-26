@@ -15,7 +15,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 
-use golback::universe::{Universe, WCoord};
+use golback::universe::{Universe, WCoord, NodeId};
 
 use crate::config::*;
 use crate::save_pattern;
@@ -38,10 +38,10 @@ pub struct Renderer {
     canvas: Canvas<Window>,
     // UI/UX variables
     frac_render: bool,
-    history: LinkedList<usize>,
+    history: LinkedList<NodeId>,
     is_paused: bool,
     show_grid: bool,
-    mouse_coords: (isize, isize)
+    mouse_coords: WCoord
 }
 
 impl Renderer {
@@ -150,8 +150,7 @@ impl Renderer {
         let mut font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
-        let mx = self.mouse_coords.0;
-        let my = self.mouse_coords.1;
+        let (mx, my) = self.mouse_coords;
 
         let mut text = String::new();
 
