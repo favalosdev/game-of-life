@@ -30,8 +30,7 @@ macro_rules! rect(
 );
 pub struct Renderer {
     universe: Universe,
-    // Logical variables
-    hash_life: bool,
+    is_hash_life: bool,
     step: usize,
     // SDL-2 variables
     event_pump: EventPump,
@@ -48,7 +47,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(universe: Universe, hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(universe: Universe, is_hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
@@ -65,7 +64,7 @@ impl Renderer {
 
         let instance = Self {
             universe,
-            hash_life,
+            is_hash_life,
             step,
             // SDL-2 variables
             event_pump,
@@ -94,27 +93,30 @@ impl Renderer {
         rect!(xo_s + OFFSET_X, (OFFSET_Y - yo_s) - r_height, r_width, r_height)
     }
 
-    fn draw_grid(&mut self, min_x_s: u32, min_y_s: u32) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_grid(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(GRID_COLOR);
 
-        let square = self.get_rect((0, 0));
-        let square_width = square.width();
-        let square_height = square.height();
+        let pivot = self.get_rect((0, 0));
+        let square_width = pivot.width() as i32;
+        let square_height = pivot.height() as i32;
 
-        let start_x = min_x_s % square_width;
-        let start_y = min_y_s % square_height;
+        let start_x = pivot.x() % square_width;
+        let start_y = pivot.y() % square_height;
 
         let mut x = start_x;
 
-        while x <= WINDOW_WIDTH {
-            self.canvas.draw_line((x as i32, 0), (x as i32, WINDOW_HEIGHT as i32))?;
+        let w_w = WINDOW_WIDTH as i32;
+        let w_h = WINDOW_HEIGHT as i32;
+
+        while x <= w_w {
+            self.canvas.draw_line((x, 0), (x, w_h))?;
             x += square_width;
         }
 
         let mut y = start_y;
 
-        while y <= WINDOW_HEIGHT {
-            self.canvas.draw_line((0, y as i32), (WINDOW_WIDTH as i32, y as i32))?;
+        while y <= w_h {
+            self.canvas.draw_line((0, y), (w_w, y))?;
             y += square_height;
         }
 
@@ -124,25 +126,9 @@ impl Renderer {
     fn draw_squares(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(CELL_COLOR);
 
-        let mut min_x_s = WINDOW_WIDTH;
-        let mut min_y_s = WINDOW_HEIGHT;
-
         for (x, y) in cells.iter() {
             let to_fill = self.get_rect((*x, *y));
             self.canvas.fill_rect(to_fill)?;
-
-            if to_fill.x >= 0 {
-                min_x_s = cmp::min(min_x_s, to_fill.x as u32);
-            }
-
-            if to_fill.y >= 0 {
-                min_y_s = cmp::min(min_y_s, to_fill.y as u32);
-            }
-        }
-
-        // Show even if what you see is completely grey
-        if self.show_grid {
-            self.draw_grid(min_x_s, min_y_s)?;
         }
 
         Ok(())
@@ -200,6 +186,11 @@ impl Renderer {
         self.draw_squares(cells)?;
         self.draw_sim_info()?;
         self.draw_sim_state()?;
+
+        if self.show_grid {
+            self.draw_grid();
+        }
+
         self.canvas.present();
         Ok(())
     }
@@ -233,7 +224,7 @@ impl Renderer {
                 }
 
                 if !self.is_paused {
-                    if self.hash_life {
+                    if self.is_hash_life {
                         self.universe.hash_life();
                     } else {
                         self.universe.advance(self.step);
@@ -291,7 +282,7 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if self.is_paused {
-                            if self.hash_life {
+                            if self.is_hash_life {
                                 self.universe.hash_life();
                             } else {
                                 self.universe.advance(self.step);
