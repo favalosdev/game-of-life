@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::collections::LinkedList;
-use std::usize;
 use literal::list;
 use sdl2::ttf::Sdl2TtfContext;
 
@@ -16,7 +15,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 
-use golback::universe::{Universe, WCoord, NodeId};
+use crate::golback::universe::{Universe, WCoord, NodeId};
 
 use crate::config::*;
 use crate::save_pattern;
@@ -31,7 +30,7 @@ macro_rules! rect(
 pub struct Renderer {
     universe: Universe,
     is_hash_life: bool,
-    step: usize,
+    step: u64,
     // SDL-2 variables
     event_pump: EventPump,
     canvas: Canvas<Window>,
@@ -47,7 +46,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(universe: Universe, is_hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(universe: Universe, is_hash_life: bool, step: u64) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
@@ -100,10 +99,8 @@ impl Renderer {
         let square_width = pivot.width() as i32;
         let square_height = pivot.height() as i32;
 
-        let start_x = pivot.x() % square_width;
-        let start_y = pivot.y() % square_height;
-
-        let mut x = start_x;
+        let mut x = pivot.x() % square_width;
+        let mut y = pivot.y() % square_height;
 
         let w_w = WINDOW_WIDTH as i32;
         let w_h = WINDOW_HEIGHT as i32;
@@ -112,8 +109,6 @@ impl Renderer {
             self.canvas.draw_line((x, 0), (x, w_h))?;
             x += square_width;
         }
-
-        let mut y = start_y;
 
         while y <= w_h {
             self.canvas.draw_line((0, y), (w_w, y))?;
@@ -158,7 +153,6 @@ impl Renderer {
         self.canvas.copy(&texture, None, Some(target))?;
 
         // Dirty-ass solution
-
         let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
         let surface = font.render(&text).blended(TEXT_COLOR)?;
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
@@ -170,19 +164,12 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_sim_state(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let mut font = self.ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
-        font.set_style(sdl2::ttf::FontStyle::BOLD);
-        Ok(())
-    }
-
     fn draw_all(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells)?;
         if self.show_grid { self.draw_grid()?; }
         self.draw_sim_info()?;
-        self.draw_sim_state()?;
         self.canvas.present();
         Ok(())
     }

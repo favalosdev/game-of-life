@@ -1,5 +1,5 @@
 use crate::config::DEFAULT_ZOOM;
-use golback::universe::WCoord;
+use crate::golback::universe::WCoord;
 
 pub struct Camera {
     pub zoom: i32,
@@ -18,14 +18,14 @@ impl Camera {
 
     pub fn from_world_coords(&self, (x_w, y_w): WCoord, frac: bool) -> (i32, i32) {
         let zoom = if frac { self.frac_zoom } else { self.zoom as f32 };
-        let x_s = ((x_w as i32) - self.pos.0) as f32 * zoom;
-        let y_s = ((y_w as i32) - self.pos.1) as f32 * zoom; 
+        let x_s = (((x_w as i32) - self.pos.0) as f32) * zoom;
+        let y_s = (((y_w as i32) - self.pos.1) as f32) * zoom;
         (x_s.floor() as i32, y_s.floor() as i32)
     } 
 
     pub fn from_screen_coords(&self, (x_s, y_s): (i32, i32)) -> WCoord {
         let x_w = x_s.div_euclid(self.zoom) + self.pos.0;
         let y_w = y_s.div_euclid(self.zoom) + self.pos.1;
-        (x_w as isize, y_w as isize)
+        (x_w as i64, y_w as i64)
     }
 }

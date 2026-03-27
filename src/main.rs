@@ -6,10 +6,13 @@ mod config;
 mod renderer;
 mod rle;
 mod camera;
+mod golback;
 
 use golback::universe::Universe;
 use renderer::Renderer;
 use rle::save_pattern;
+
+use crate::config::UNIVERSE_DIM;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -29,17 +32,17 @@ struct Args {
     #[arg(short = 't', long, default_value_t=false)]
     interactive: bool,
     #[arg(short='g', long)]
-    gens: Option<usize>,
+    gens: Option<u64>,
     // Only available in interactive mode
     #[arg(short='s', long, default_value_t=1)]
-    step: usize
+    step: u64
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let mut universe = Universe::new();
-    universe.init();
+    universe.init(UNIVERSE_DIM);
     universe.load(args.input)?;
 
     if args.interactive {

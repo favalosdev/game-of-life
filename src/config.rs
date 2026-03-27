@@ -11,3 +11,4 @@ pub const CAMERA_DELTA: i32 = 100;
 pub const GRID_COLOR: Color = Color::RGB(64, 64, 64);
 pub const CELL_COLOR: Color = Color::RGB(0, 255, 0);
 pub const TEXT_COLOR: Color = Color::RGB(255, 255, 255);
+pub const UNIVERSE_DIM: u32 = 15;
