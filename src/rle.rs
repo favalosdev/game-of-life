@@ -6,7 +6,7 @@ use std::cmp;
 
 use chrono::Local;
 
-use crate::golback::universe::WCoord;
+use golback::universe::WCoord;
 
 fn get_min_max(values: &LinkedList<i64>) -> Result<(i64, i64), &'static str> {
     if values.is_empty() {

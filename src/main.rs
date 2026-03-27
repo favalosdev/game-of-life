@@ -6,7 +6,6 @@ mod config;
 mod renderer;
 mod rle;
 mod camera;
-mod golback;
 
 use golback::universe::Universe;
 use renderer::Renderer;

@@ -1,5 +1,5 @@
 use crate::config::DEFAULT_ZOOM;
-use crate::golback::universe::WCoord;
+use golback::universe::WCoord;
 
 pub struct Camera {
     pub zoom: i32,
