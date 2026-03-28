@@ -27,7 +27,7 @@ struct Args {
     hash_life: bool,
     // Amount of times hash-life should be executed in non-interactive mode
     #[arg(short = 'r', long)]
-    repeat: Option<usize>,
+    repeat: Option<u32>,
     #[arg(short = 't', long, default_value_t=false)]
     interactive: bool,
     #[arg(short='g', long)]
