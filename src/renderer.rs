@@ -1,9 +1,8 @@
 use std::path::Path;
 use std::collections::LinkedList;
-use literal::list;
-use sdl2::ttf::Sdl2TtfContext;
-
 use std::time::{Duration, Instant};
+
+use literal::list;
 
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
@@ -14,6 +13,7 @@ use sdl2::EventPump;
 use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
+use sdl2::ttf::Sdl2TtfContext;
 
 use crate::backend::{Universe, WCoord, NodeId};
 use crate::config::*;
@@ -237,7 +237,7 @@ impl Renderer {
                         if !self.frac_render {
                             self.camera.zoom += 1;
                         } else {
-                            self.camera.frac_zoom += 0.1 * self.camera.frac_zoom;
+                            self.camera.frac_zoom *= 1.1;
 
                             if self.camera.frac_zoom > 0.99 {
                                 self.frac_render = false;
@@ -252,7 +252,8 @@ impl Renderer {
                                 self.frac_render = true;
                             }
                         } else {
-                            self.camera.frac_zoom -= 0.1 * self.camera.frac_zoom;
+                            self.camera.frac_zoom *= 0.9;
+                            self.camera.frac_zoom = self.camera.frac_zoom.max(0.0001);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
