@@ -28,6 +28,8 @@
 //! println!("Population: {}", universe.population());
 //! ```
 
+// Tests created by Claude
+
 mod tests {
     use std::collections::LinkedList;
     use crate::backend::Universe;
