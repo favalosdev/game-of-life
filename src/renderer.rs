@@ -82,8 +82,8 @@ impl Renderer {
     }
 
     fn get_rect(&self, point: WCoord) -> Rect {
-        let (xo_s, yo_s) = self.camera.from_world_coords(point, self.frac_render);
-        let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1), self.frac_render);
+        let (xo_s, yo_s) = self.camera.from_world_coords(point);
+        let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1));
 
         let r_width = xf_s - xo_s;
         let r_height = yf_s - yo_s;
@@ -213,8 +213,7 @@ impl Renderer {
 
             let mouse_state: MouseState = self.event_pump.mouse_state();
             self.mouse_coords = self.camera.from_screen_coords((mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y()));
-
-            let zoom_factor = if !self.frac_render { self.camera.zoom } else { 1 };
+            let zoom_factor = self.camera.zoom.max(1.0) as i32;
 
             for event in self.event_pump.poll_iter() {
                 match event {
@@ -236,25 +235,27 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::I), .. } => {
                         if !self.frac_render {
-                            self.camera.zoom += 1;
+                            self.camera.zoom += 1.0;
                         } else {
-                            self.camera.frac_zoom *= 1.1;
+                            self.camera.zoom *= 1.1;
 
-                            if self.camera.frac_zoom > 0.99 {
+                            if self.camera.zoom > 0.99 {
                                 self.frac_render = false;
+                                self.camera.zoom = 1.0;
                             }
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::O), .. } => {
                         if !self.frac_render {
-                            self.camera.zoom -= 1;
+                            self.camera.zoom -= 1.0;
 
-                            if self.camera.zoom == 1 {
+                            if self.camera.zoom == 1.0 {
                                 self.frac_render = true;
                             }
                         } else {
-                            self.camera.frac_zoom *= 0.9;
-                            self.camera.frac_zoom = self.camera.frac_zoom.max(0.0001);
+                            self.camera.zoom *= 0.9;
+                            // Prevent divsion by zero
+                            self.camera.zoom = self.camera.zoom.max(0.0001);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
