@@ -6,23 +6,9 @@ use std::cmp;
 
 use chrono::Local;
 
-use golback::universe::WCoord;
+use crate::backend::WCoord;
 
-pub struct InputState {
-    pub is_paused: bool,
-    pub show_grid: bool
-}
-
-impl InputState {
-    pub fn new() -> Self {
-        InputState {
-            is_paused: true,
-            show_grid: false
-        }
-    }
-}
-
-fn get_min_max(values: &LinkedList<isize>) -> Result<(isize, isize), &'static str> {
+fn get_min_max(values: &LinkedList<i64>) -> Result<(i64, i64), &'static str> {
     if values.is_empty() {
         return Err("Values must not be empty");
     }
@@ -38,9 +24,9 @@ fn get_min_max(values: &LinkedList<isize>) -> Result<(isize, isize), &'static st
     Ok((min, max))
 }
 
-fn get_bounding_box(cells: &LinkedList<WCoord>) -> Result<(isize, isize, isize, isize), &'static str> {
-    let x_coords: LinkedList<isize> = cells.iter().map(|c| c.0).collect();
-    let y_coords: LinkedList<isize> = cells.iter().map(|c| c.1).collect();
+fn get_bounding_box(cells: &LinkedList<WCoord>) -> Result<(i64, i64, i64, i64), &'static str> {
+    let x_coords: LinkedList<i64> = cells.iter().map(|c| c.0).collect();
+    let y_coords: LinkedList<i64> = cells.iter().map(|c| c.1).collect();
 
     let (min_x, max_x) = get_min_max(&x_coords)?;
     let (min_y, max_y) = get_min_max(&y_coords)?;
@@ -56,7 +42,7 @@ fn write_run(body: &mut String, counter: i32, alive: bool) {
     body.push_str(if alive { "o" } else { "b" });
 }
 
-fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<usize>, s: &Vec<usize>) -> Result<String, Box<dyn std::error::Error>> {
+fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<u8>, s: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
     let mut body = String::new();
 
     let (min_x, max_x, min_y, max_y) = get_bounding_box(cells)?;
@@ -118,8 +104,8 @@ fn format_output_path(path: Option<&String>) -> Result<String, std::io::Error> {
 pub fn save_pattern(
     cells: &LinkedList<WCoord>,
     path: Option<&String>,
-    b: &Vec<usize>,
-    s: &Vec<usize>
+    b: &Vec<u8>,
+    s: &Vec<u8>
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut init = String::new();
 

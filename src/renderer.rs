@@ -1,11 +1,12 @@
 use std::path::Path;
 use std::collections::LinkedList;
-use std::{cmp, usize};
+use literal::list;
+use sdl2::ttf::Sdl2TtfContext;
 
 use std::time::{Duration, Instant};
 
-use sdl2::render::Canvas;
-use sdl2::video::Window;
+use sdl2::render::{Canvas, TextureCreator};
+use sdl2::video::{Window, WindowContext};
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::TextureQuery;
@@ -14,11 +15,8 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 
-use golback::universe::{Universe, WCoord};
-
+use crate::backend::{Universe, WCoord, NodeId};
 use crate::config::*;
-use crate::feedback::{Feedback, MouseCoords};
-use crate::input::InputState;
 use crate::save_pattern;
 use crate::camera::Camera;
 
@@ -28,29 +26,26 @@ macro_rules! rect(
         Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
     )
 );
-
 pub struct Renderer {
-    camera: Camera,
-    feedback: Feedback,
-    input_state: InputState,
+    universe: Universe,
+    is_hash_life: bool,
+    step: u64,
+    // SDL-2 variables
     event_pump: EventPump,
     canvas: Canvas<Window>,
+    texture_creator: TextureCreator<WindowContext>,
+    ttf_context: Sdl2TtfContext,
+    // UI/UX variables
+    camera: Camera,
     frac_render: bool,
-    hash_life: bool,
-    step: usize
-}
-
-// Stinky aux function
-fn evolve(universe: &mut Universe, hash_life: bool, step: usize) {
-    if hash_life {
-        universe.hash_life();
-    } else {
-        universe.advance(step);
-    }
+    history: LinkedList<NodeId>,
+    is_paused: bool,
+    show_grid: bool,
+    mouse_coords: WCoord
 }
 
 impl Renderer {
-    pub fn new(hash_life: bool, step: usize) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(universe: Universe, is_hash_life: bool, step: u64) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
@@ -62,19 +57,28 @@ impl Renderer {
 
         let event_pump = sdl_context.event_pump().map_err(|e| format!("Failed to create event pump: {}", e))?;
         let canvas: Canvas<Window> = window.into_canvas().build().map_err(|e| format!("Failed to create canvas: {}", e))?;
+        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+        let texture_creator = canvas.texture_creator();
 
-        let result = Self {
-            camera: Camera::new(),
-            feedback: Feedback::new(),
-            input_state: InputState::new(),
+        let instance = Self {
+            universe,
+            is_hash_life,
+            step,
+            // SDL-2 variables
             event_pump,
             canvas,
+            ttf_context,
+            texture_creator,
+            // UI/UX variables
+            camera: Camera::new(),
             frac_render: false,
-            hash_life,
-            step
+            history: list![],
+            is_paused: true,
+            show_grid: false,
+            mouse_coords: (0, 0)
         };
 
-        Ok(result)
+        Ok(instance)
     }
 
     fn get_rect(&self, point: WCoord) -> Rect {
@@ -87,27 +91,26 @@ impl Renderer {
         rect!(xo_s + OFFSET_X, (OFFSET_Y - yo_s) - r_height, r_width, r_height)
     }
 
-    fn draw_grid(&mut self, min_x_s: u32, min_y_s: u32) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_grid(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(GRID_COLOR);
 
-        let square= self.get_rect((0, 0));
-        let square_width = square.width();
-        let square_height = square.height();
+        let pivot = self.get_rect((0, 0));
+        let square_width = pivot.width() as i32;
+        let square_height = pivot.height() as i32;
 
-        let start_x = min_x_s % square_width;
-        let start_y = min_y_s % square_height;
+        let mut x = pivot.x() % square_width;
+        let mut y = pivot.y() % square_height;
 
-        let mut x = start_x;
+        let w_w = WINDOW_WIDTH as i32;
+        let w_h = WINDOW_HEIGHT as i32;
 
-        while x <= WINDOW_WIDTH {
-            self.canvas.draw_line((x as i32, 0), (x as i32, WINDOW_HEIGHT as i32))?;
+        while x <= w_w {
+            self.canvas.draw_line((x, 0), (x, w_h))?;
             x += square_width;
         }
 
-        let mut y = start_y;
-
-        while y <= WINDOW_HEIGHT {
-            self.canvas.draw_line((0, y as i32), (WINDOW_WIDTH as i32, y as i32))?;
+        while y <= w_h {
+            self.canvas.draw_line((0, y), (w_w, y))?;
             y += square_height;
         }
 
@@ -117,66 +120,44 @@ impl Renderer {
     fn draw_squares(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(CELL_COLOR);
 
-        let mut min_x_s = WINDOW_WIDTH;
-        let mut min_y_s = WINDOW_HEIGHT;
-
         for (x, y) in cells.iter() {
-            let to_fill = self.get_rect((*x, *y));
-            self.canvas.fill_rect(to_fill)?;
-
-            if to_fill.x >= 0 {
-                min_x_s = cmp::min(min_x_s, to_fill.x as u32);
-            }
-
-            if to_fill.y >= 0 {
-                min_y_s = cmp::min(min_y_s, to_fill.y as u32);
-            }
-        }
-
-        // Show even if what you see is completely grey
-        if self.input_state.show_grid {
-            self.draw_grid(min_x_s, min_y_s)?;
+            let to_draw = self.get_rect((*x, *y));
+            self.canvas.fill_rect(to_draw)?;
         }
 
         Ok(())
     }
 
-    fn draw_feedback(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let texture_creator = self.canvas.texture_creator();
-        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
-        let padding = 10;
-
+    fn draw_sim_info(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Load a font
-        let mut font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
+        let mut font = self.ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
         font.set_style(sdl2::ttf::FontStyle::BOLD);
 
-        let mx = self.feedback.mouse_coords.x;
-        let my = self.feedback.mouse_coords.y;
-
         let mut text = String::new();
-
-        if self.feedback.epochs < usize::MAX - 1 {
-            text.push_str(&format!("gen: {}", self.feedback.epochs));
-        }
-
-        text.push_str(&format!(" cells: {}", self.feedback.cell_count));
+        text.push_str(&format!("gen: {}", self.universe.epochs()));
+        text.push_str(&format!(" cells: {}", self.universe.population()));
 
         if !self.frac_render {
+            let (mx, my) = self.mouse_coords;
             text.push_str(&format!(" x: {:.2}, y: {:.2}", mx, my));
+        } else {
+            text.push_str(&" x: --, y: --");
         }
 
-        // Render a surface, and convert it to a texture bound to the canvas
-        let surface = font
-            .render(&text)
-            .blended(FEEDBACK_COLOR)?;
+        let surface = font.render(&text).blended(TEXT_COLOR)?;
+        let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
+        let TextureQuery { width, height, .. } = texture.query();
+        let padding = 10;
+        let target = rect!((WINDOW_WIDTH - padding) - width, (WINDOW_HEIGHT - padding) - height, width, height);
+        self.canvas.copy(&texture, None, Some(target))?;
 
-        let texture = texture_creator
-            .create_texture_from_surface(&surface)?;
-
-        let TextureQuery { width: t_width, height: t_height, .. } = texture.query();
-
-        let target = rect!(WINDOW_WIDTH - t_width - padding, WINDOW_HEIGHT - t_height - padding, t_width, t_height);
-
+        // Dirty-ass solution
+        let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
+        let surface = font.render(&text).blended(TEXT_COLOR)?;
+        let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
+        let TextureQuery { width, height, .. } = texture.query();
+        let padding = 10;
+        let target = rect!(padding, (WINDOW_HEIGHT - padding) - height, width, height);
         self.canvas.copy(&texture, None, Some(target))?;
 
         Ok(())
@@ -186,20 +167,18 @@ impl Renderer {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells)?;
-        self.draw_feedback()?;
+        if self.show_grid { self.draw_grid()?; }
+        self.draw_sim_info()?;
         self.canvas.present();
         Ok(())
     }
 
-    pub fn r#loop(&mut self, universe: &mut Universe, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn r#loop(&mut self, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
         let mut last_game_tick = Instant::now();
         let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
-        let mut last = universe.state();
-        let mut coords = universe.to_coords();
-
-        let step = self.step;
-        let hash_life = self.hash_life;
+        let mut last = self.universe.state();
+        let mut coords = self.universe.to_coords();
 
         // Initial render
         self.draw_all(&coords)?;
@@ -210,10 +189,10 @@ impl Renderer {
             if now.duration_since(last_game_tick) >= game_interval {
                 last_game_tick = now;
 
-                let curr = universe.state();
+                let curr = self.universe.state();
 
-                if last != universe.state() {
-                    coords = universe.to_coords();
+                if last != self.universe.state() {
+                    coords = self.universe.to_coords();
                     last = curr;
                 }
 
@@ -222,18 +201,17 @@ impl Renderer {
                     continue;
                 }
 
-                if !self.input_state.is_paused {
-                    evolve(universe, hash_life, step);
+                if !self.is_paused {
+                    if self.is_hash_life {
+                        self.universe.hash_life();
+                    } else {
+                        self.universe.advance(self.step);
+                    }
                 }
             }
 
             let mouse_state: MouseState = self.event_pump.mouse_state();
-            let (mx_s, my_s) = (mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y());
-            let (mx_w, my_w) = self.camera.from_screen_coords((mx_s, my_s));
-
-            self.feedback.mouse_coords = MouseCoords { x: mx_w, y: my_w };
-            self.feedback.cell_count = universe.population();
-            self.feedback.epochs = cmp::min(universe.epochs(), usize::MAX - 1);
+            self.mouse_coords = self.camera.from_screen_coords((mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y()));
 
             let zoom_factor = if !self.frac_render { self.camera.zoom } else { 1 };
 
@@ -278,33 +256,41 @@ impl Renderer {
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
-                        self.input_state.is_paused = !self.input_state.is_paused;
+                        self.is_paused = !self.is_paused;
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
-                        if self.input_state.is_paused {
-                            evolve(universe, hash_life, step);
+                        if self.is_paused {
+                            if self.is_hash_life {
+                                self.universe.hash_life();
+                            } else {
+                                self.universe.advance(self.step);
+                            }
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
-                        self.input_state.show_grid = !self.input_state.show_grid;
+                        self.show_grid = !self.show_grid;
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
-                        if self.input_state.is_paused && !self.frac_render {
-                            universe.toggle((mx_w, my_w));
+                        if self.is_paused && !self.frac_render {
+                            self.universe.toggle(self.mouse_coords);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                        if self.input_state.is_paused && !coords.is_empty() {
+                        if self.is_paused && !coords.is_empty() {
                             if let Err(e) = save_pattern(
                                 &coords,
                                 output_path,
-                                &universe.b(),
-                                &universe.s()
+                                &self.universe.b(),
+                                &self.universe.s()
                             ) {
                                 eprintln!("{}", e);
                             }
                         }
-                    }
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::J), .. } => {
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::K), .. } => {
+                    },
                     _ => {}
                 }
             }

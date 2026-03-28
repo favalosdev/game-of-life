@@ -3,14 +3,16 @@ extern crate sdl2;
 use clap::Parser;
 
 mod config;
-mod feedback;
 mod renderer;
-mod input;
+mod rle;
 mod camera;
+mod backend;
 
-use golback::universe::Universe;
+use backend::Universe;
 use renderer::Renderer;
-use input::save_pattern;
+use rle::save_pattern;
+
+use crate::config::UNIVERSE_DIM;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -26,26 +28,26 @@ struct Args {
     hash_life: bool,
     // Amount of times hash-life should be executed in non-interactive mode
     #[arg(short = 'r', long)]
-    repeat: Option<usize>,
+    repeat: Option<u32>,
     #[arg(short = 't', long, default_value_t=false)]
     interactive: bool,
     #[arg(short='g', long)]
-    gens: Option<usize>,
+    gens: Option<u64>,
     // Only available in interactive mode
     #[arg(short='s', long, default_value_t=1)]
-    step: usize
+    step: u64
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let mut universe = Universe::new();
-    universe.init();
+    universe.init(UNIVERSE_DIM);
     universe.load(args.input)?;
 
     if args.interactive {
-        let mut renderer = Renderer::new(args.hash_life, args.step)?;
-        renderer.r#loop(&mut universe, args.output.as_ref())?;
+        let mut renderer = Renderer::new(universe, args.hash_life, args.step)?;
+        renderer.r#loop(args.output.as_ref())?;
     } else {
         let output = args.output.ok_or("output parameter required in non-interactive mode")?;
 
