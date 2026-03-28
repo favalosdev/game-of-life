@@ -337,10 +337,8 @@ impl Universe {
     /// # Arguments
     /// * `target` - The (x, y) coordinates of the cell to add
     pub fn add(&mut self, target: WCoord) {
-        if let Some(path) = self.search(target) {
-            if let Some((DEAD, _)) = path.first() {
-                self.backprop(path, ALIVE)
-            }
+        if !self.is_alive(target) {
+            self.toggle(target);
         }
     }
 
@@ -353,10 +351,8 @@ impl Universe {
     /// # Arguments
     /// * `target` - The (x, y) coordinates of the cell to delete
     pub fn delete(&mut self, target: WCoord) {
-        if let Some(path) = self.search(target) {
-            if let Some((ALIVE, _)) = path.first() {
-                self.backprop(path, DEAD)
-            }
+        if self.is_alive(target) {
+            self.toggle(target);
         }
     }
 
