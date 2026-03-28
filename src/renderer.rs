@@ -98,8 +98,9 @@ impl Renderer {
         let square_width = pivot.width() as i32;
         let square_height = pivot.height() as i32;
 
-        let mut x = pivot.x() % square_width;
-        let mut y = pivot.y() % square_height;
+        // Works even if (0, 0) is off-screen
+        let mut x = pivot.x().rem_euclid(square_width);
+        let mut y = pivot.y().rem_euclid(square_height);
 
         let w_w = WINDOW_WIDTH as i32;
         let w_h = WINDOW_HEIGHT as i32;
