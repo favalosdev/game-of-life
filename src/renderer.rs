@@ -254,7 +254,7 @@ impl Renderer {
                             }
                         } else {
                             self.camera.zoom *= 0.9;
-                            // Prevent divsion by zero
+                            // Safe clipping
                             self.camera.zoom = self.camera.zoom.max(0.0001);
                         }
                     },
