@@ -15,8 +15,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 
-use golback::universe::{Universe, WCoord, NodeId};
-
+use crate::backend::{Universe, WCoord, NodeId};
 use crate::config::*;
 use crate::save_pattern;
 use crate::camera::Camera;

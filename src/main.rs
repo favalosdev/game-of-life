@@ -6,8 +6,9 @@ mod config;
 mod renderer;
 mod rle;
 mod camera;
+mod backend;
 
-use golback::universe::Universe;
+use backend::Universe;
 use renderer::Renderer;
 use rle::save_pattern;
 
