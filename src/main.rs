@@ -7,6 +7,7 @@ mod renderer;
 mod rle;
 mod camera;
 mod backend;
+mod history;
 
 use backend::Universe;
 use renderer::Renderer;

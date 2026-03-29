@@ -6,7 +6,7 @@ use std::cmp;
 
 use chrono::Local;
 
-use crate::backend::WCoord;
+use crate::backend::Coordinates;
 
 fn get_min_max(values: &LinkedList<i64>) -> Result<(i64, i64), &'static str> {
     if values.is_empty() {
@@ -24,7 +24,7 @@ fn get_min_max(values: &LinkedList<i64>) -> Result<(i64, i64), &'static str> {
     Ok((min, max))
 }
 
-fn get_bounding_box(cells: &LinkedList<WCoord>) -> Result<(i64, i64, i64, i64), &'static str> {
+fn get_bounding_box(cells: &LinkedList<Coordinates>) -> Result<(i64, i64, i64, i64), &'static str> {
     let x_coords: LinkedList<i64> = cells.iter().map(|c| c.0).collect();
     let y_coords: LinkedList<i64> = cells.iter().map(|c| c.1).collect();
 
@@ -42,7 +42,7 @@ fn write_run(body: &mut String, counter: i32, alive: bool) {
     body.push_str(if alive { "o" } else { "b" });
 }
 
-fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<u8>, s: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
+fn encode_run_length(cells: &LinkedList<Coordinates>, b: &Vec<u8>, s: &Vec<u8>) -> Result<String, Box<dyn std::error::Error>> {
     let mut body = String::new();
 
     let (min_x, max_x, min_y, max_y) = get_bounding_box(cells)?;
@@ -58,7 +58,7 @@ fn encode_run_length(cells: &LinkedList<WCoord>, b: &Vec<u8>, s: &Vec<u8>) -> Re
             s.iter().map(|n| n.to_string()).collect::<String>())
     );
 
-    let lookup: HashSet<WCoord> = cells.iter().cloned().collect();
+    let lookup: HashSet<Coordinates> = cells.iter().cloned().collect();
     
     for y in (min_y..=max_y).rev() {
         let mut counter = 1;
@@ -102,7 +102,7 @@ fn format_output_path(path: Option<&String>) -> Result<String, std::io::Error> {
 }
 
 pub fn save_pattern(
-    cells: &LinkedList<WCoord>,
+    cells: &LinkedList<Coordinates>,
     path: Option<&String>,
     b: &Vec<u8>,
     s: &Vec<u8>
