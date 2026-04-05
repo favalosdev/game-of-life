@@ -1,8 +1,5 @@
 use std::path::Path;
-use std::collections::LinkedList;
 use std::time::{Duration, Instant};
-
-use literal::list;
 
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
@@ -15,8 +12,9 @@ use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 use sdl2::ttf::Sdl2TtfContext;
 
-use crate::backend::{Universe, WCoord, NodeId};
+use crate::backend::{Coordinates, Universe};
 use crate::config::*;
+use crate::history::History;
 use crate::save_pattern;
 use crate::camera::Camera;
 
@@ -26,6 +24,7 @@ macro_rules! rect(
         Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
     )
 );
+
 pub struct Renderer {
     universe: Universe,
     is_hash_life: bool,
@@ -38,10 +37,18 @@ pub struct Renderer {
     // UI/UX variables
     camera: Camera,
     frac_render: bool,
-    history: LinkedList<NodeId>,
-    is_paused: bool,
+    is_running: bool,
     show_grid: bool,
-    mouse_coords: WCoord
+    mouse_coords: Coordinates
+}
+
+// Helper function
+fn advance(u: &mut Universe, is_hash_life: bool, step: u64) {
+    if is_hash_life {
+        u.hash_life();
+    } else {
+        u.advance(step);
+    }
 }
 
 impl Renderer {
@@ -72,8 +79,7 @@ impl Renderer {
             // UI/UX variables
             camera: Camera::new(),
             frac_render: false,
-            history: list![],
-            is_paused: true,
+            is_running: true,
             show_grid: false,
             mouse_coords: (0, 0)
         };
@@ -81,9 +87,9 @@ impl Renderer {
         Ok(instance)
     }
 
-    fn get_rect(&self, point: WCoord) -> Rect {
-        let (xo_s, yo_s) = self.camera.from_world_coords(point, self.frac_render);
-        let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1), self.frac_render);
+    fn get_rect(&self, point: Coordinates) -> Rect {
+        let (xo_s, yo_s) = self.camera.from_world_coords(point);
+        let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1));
 
         let r_width = xf_s - xo_s;
         let r_height = yf_s - yo_s;
@@ -97,8 +103,6 @@ impl Renderer {
         let pivot = self.get_rect((0, 0));
         let square_width = pivot.width() as i32;
         let square_height = pivot.height() as i32;
-
-        // Works even if (0, 0) is off-screen
         let mut x = pivot.x().rem_euclid(square_width);
         let mut y = pivot.y().rem_euclid(square_height);
 
@@ -118,11 +122,11 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_squares(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_squares(&mut self, cells: &Vec<Coordinates>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(CELL_COLOR);
 
-        for (x, y) in cells.iter() {
-            let to_draw = self.get_rect((*x, *y));
+        for &p in cells.into_iter() {
+            let to_draw = self.get_rect(p);
             self.canvas.fill_rect(to_draw)?;
         }
 
@@ -153,7 +157,7 @@ impl Renderer {
         self.canvas.copy(&texture, None, Some(target))?;
 
         // Dirty-ass solution
-        let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
+        let text = if self.is_running { "  LIVE  " } else { "--PAUSED--" };
         let surface = font.render(&text).blended(TEXT_COLOR)?;
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width, height, .. } = texture.query();
@@ -164,7 +168,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_all(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_all(&mut self, cells: &Vec<Coordinates>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells)?;
@@ -179,42 +183,38 @@ impl Renderer {
         let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
         let mut last = self.universe.state();
-        let mut coords = self.universe.to_coords();
-
-        // Initial render
-        self.draw_all(&coords)?;
+        let mut curr = last;
+        let mut coords = self.universe.to_coords().into_iter().collect();
+        let mut history = History::new(1000, curr);
 
         'running: loop {
             let now = Instant::now();
 
             if now.duration_since(last_game_tick) >= game_interval {
                 last_game_tick = now;
-
-                let curr = self.universe.state();
-
-                if last != self.universe.state() {
-                    coords = self.universe.to_coords();
+                
+                if curr != last {
                     last = curr;
+                    coords = self.universe.to_coords().into_iter().collect();
                 }
+
+                assert_eq!(history.state(), self.universe.state());
 
                 if let Err(e) = self.draw_all(&coords) {
                     eprintln!("Drawing error: {}", e);
                     continue;
                 }
 
-                if !self.is_paused {
-                    if self.is_hash_life {
-                        self.universe.hash_life();
-                    } else {
-                        self.universe.advance(self.step);
-                    }
+                if self.is_running {
+                    advance(&mut self.universe, self.is_hash_life, self.step);
+                    curr = self.universe.state();
+                    history.enqueue(curr);
                 }
             }
 
             let mouse_state: MouseState = self.event_pump.mouse_state();
             self.mouse_coords = self.camera.from_screen_coords((mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y()));
-
-            let zoom_factor = if !self.frac_render { self.camera.zoom } else { 1 };
+            let zoom_factor = self.camera.zoom.max(1.0) as i32;
 
             for event in self.event_pump.poll_iter() {
                 match event {
@@ -236,49 +236,51 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::I), .. } => {
                         if !self.frac_render {
-                            self.camera.zoom += 1;
+                            self.camera.zoom += 1.0;
                         } else {
-                            self.camera.frac_zoom *= 1.1;
+                            self.camera.zoom *= 1.1;
 
-                            if self.camera.frac_zoom > 0.99 {
+                            if self.camera.zoom > 0.99 {
                                 self.frac_render = false;
+                                self.camera.zoom = 1.0;
                             }
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::O), .. } => {
                         if !self.frac_render {
-                            self.camera.zoom -= 1;
+                            self.camera.zoom -= 1.0;
 
-                            if self.camera.zoom == 1 {
+                            if self.camera.zoom == 1.0 {
                                 self.frac_render = true;
                             }
                         } else {
-                            self.camera.frac_zoom *= 0.9;
-                            self.camera.frac_zoom = self.camera.frac_zoom.max(0.0001);
+                            self.camera.zoom *= 0.9;
+                            // Safe clipping
+                            self.camera.zoom = self.camera.zoom.max(0.0001);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
-                        self.is_paused = !self.is_paused;
+                        self.is_running = !self.is_running;
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
-                        if self.is_paused {
-                            if self.is_hash_life {
-                                self.universe.hash_life();
-                            } else {
-                                self.universe.advance(self.step);
-                            }
+                        if !self.is_running {
+                            advance(&mut self.universe, self.is_hash_life, self.step);
+                            curr = self.universe.state();
+                            history.enqueue(curr);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                         self.show_grid = !self.show_grid;
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
-                        if self.is_paused && !self.frac_render {
+                        if !self.is_running && !self.frac_render {
                             self.universe.toggle(self.mouse_coords);
+                            curr = self.universe.state();
+                            history.enqueue(curr);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                        if self.is_paused && !coords.is_empty() {
+                        if !self.is_running && !coords.is_empty() {
                             if let Err(e) = save_pattern(
                                 &coords,
                                 output_path,
@@ -290,8 +292,11 @@ impl Renderer {
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::J), .. } => {
-                    },
-                    Event::KeyDown { scancode: Some(Scancode::K), .. } => {
+                        if !self.is_running {
+                            history.unwind();
+                            self.universe.set_state(history.state());
+                            curr = self.universe.state();
+                        }
                     },
                     _ => {}
                 }

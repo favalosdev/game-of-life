@@ -1,22 +1,22 @@
-use std::collections::{LinkedList, HashSet};
+use std::collections::HashSet;
 use std::cmp;
 use std::fs::File;
-use rustc_hash::{FxHashMap, FxBuildHasher};
-use literal::list;
+use rustc_hash::FxHashMap;
 use ca_formats::rle::Rle;
+use trait_aliases::trait_aliases;
 
 pub mod test;
 
-const ARENA_SIZE: usize = 10_000_000;
+const ARENA_SIZE: usize = 1_000_000; // Reasonable estimate
 
 #[derive(Debug)]
 struct Node {
     n: usize, // Number of alive cells within the node
     k: u32, // Size of the quadtree (2**k x 2**k)
-    a: NodeId,
-    b: NodeId,
-    c: NodeId,
-    d: NodeId
+    a: NodeId, // Northwestern quadrant
+    b: NodeId, // Northeastern quadrant
+    c: NodeId, // Southwestern quadrant
+    d: NodeId // Southeastern quadrant
 }
 
 /// Unique identifier type for a node in the Game of Life universe.
@@ -27,10 +27,10 @@ pub type NodeId = usize;
 
 #[derive(Debug, Clone, Copy)]
 enum Quadrant {
-    NW,
-    NE,
-    SW,
-    SE
+    A, // Northwestern quadrant
+    B, // Northeastern quadrant
+    C, // Southwestern quadrant
+    D // Southeastern quadrant
 }
 
 type Path = Vec<(NodeId, Quadrant)>;
@@ -39,7 +39,12 @@ type Path = Vec<(NodeId, Quadrant)>;
 /// 
 /// Coordinates are signed integers allowing for negative positions.
 /// The origin (0, 0) is at the center of the universe.
-pub type WCoord = (i64, i64);
+pub type Coordinates = ca_formats::Coordinates;
+
+trait_aliases! {
+    pub trait CellContainer = IntoIterator<Item = Coordinates>;
+    pub trait RefCellContainer<'a> = IntoIterator<Item = &'a Coordinates>;
+}
 
 const DEAD: NodeId = 0;
 const ALIVE: NodeId = 1;
@@ -53,7 +58,7 @@ fn transform(x: i64) -> i64 {
     x.abs() - (x < 0) as i64
 }
 
-fn in_limit(target: WCoord, k: u32) -> bool {
+fn in_limit(target: Coordinates, k: u32) -> bool {
     let limit = 2_i64.pow(k - 1);
     transform(target.0) < limit && transform(target.1) < limit
 }
@@ -79,12 +84,10 @@ struct Caches {
 
 impl Caches {
     fn new() -> Self {
-        let h = FxBuildHasher::default();
-
         Caches {
-            join: FxHashMap::with_capacity_and_hasher(5_000_000, h),
-            zero: FxHashMap::with_capacity_and_hasher(5_000_000, h),
-            successor: FxHashMap::with_capacity_and_hasher(5_000_000, h)
+            join: FxHashMap::default(),
+            zero: FxHashMap::default(),
+            successor: FxHashMap::default()
         }
     }
 }
@@ -229,22 +232,19 @@ impl Universe {
         let height = header_data.y;
         let rule = &header_data.rule;
 
-        match rule {
-            Some(content) => {
-                let parts: Vec<&str> = content.split("/").collect();
-                self.b = parts[0][1..].chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
-                self.s = parts[1][1..].chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
-            },
-            _ => {}
-        }
+        rule.as_ref().map(|c| {
+            let parts: Vec<&str> = c.split("/").collect();
+            self.b = parts[0][1..].chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
+            self.s = parts[1][1..].chars().map(|c| c.to_digit(10).unwrap() as u8).collect();
+        });
 
         let coords  =  pattern
             .map(|cell| cell.unwrap())
             .filter(|data | data.state == 1)
             .map(|data| (data.position.0 - (width as i64) / 2, (height as i64) / 2 - data.position.1))
-            .collect::<LinkedList<_>>();
+            .collect::<Vec<_>>();
 
-        self.from_coords(coords);
+        self.from_coords(&coords);
         Ok(())
     }
 
@@ -270,8 +270,10 @@ impl Universe {
     /// 
     /// universe.from_coords(cells); // Creates a block pattern
     /// ```
-    pub fn from_coords(&mut self, cells: LinkedList<WCoord>) {
-        self.root = self.from_coords_aux(&cells, (0,0), self.dim(), offset(self.dim()))
+    pub fn from_coords<'a, T>(&mut self, cells: &'a T) where &'a T: RefCellContainer<'a> {
+        let k = self.dim();
+        let coords = cells.into_iter().cloned().collect::<Vec<_>>();
+        self.root = self.from_coords_aux(&coords, (0, 0), k, offset(k))
     }
 
     /// Returns a unique identifier for the current universe state.
@@ -280,6 +282,10 @@ impl Universe {
     /// (cycle detection) or to compare universe configurations.
     pub fn state(&self) -> NodeId {
         self.root
+    }
+
+    pub fn set_state(&mut self, s: NodeId) {
+        self.root = s;
     }
 
     /// Returns the current population (number of alive cells).
@@ -336,11 +342,9 @@ impl Universe {
     /// 
     /// # Arguments
     /// * `target` - The (x, y) coordinates of the cell to add
-    pub fn add(&mut self, target: WCoord) {
-        if let Some(path) = self.search(target) {
-            if let Some((DEAD, _)) = path.first() {
-                self.backprop(path, ALIVE)
-            }
+    pub fn add(&mut self, target: Coordinates) {
+        if !self.is_alive(target) {
+            self.toggle(target);
         }
     }
 
@@ -352,11 +356,9 @@ impl Universe {
     /// 
     /// # Arguments
     /// * `target` - The (x, y) coordinates of the cell to delete
-    pub fn delete(&mut self, target: WCoord) {
-        if let Some(path) = self.search(target) {
-            if let Some((ALIVE, _)) = path.first() {
-                self.backprop(path, DEAD)
-            }
+    pub fn delete(&mut self, target: Coordinates) {
+        if self.is_alive(target) {
+            self.toggle(target);
         }
     }
 
@@ -368,10 +370,10 @@ impl Universe {
     /// 
     /// # Arguments
     /// * `target` - The (x, y) coordinates of the cell to toggle
-    pub fn toggle(&mut self, target: WCoord) {
+    pub fn toggle(&mut self, target: Coordinates) {
         if let Some(path) = self.search(target) {
             if let Some((leaf, _)) = path.first() {
-                let target = *leaf ^ 1;
+                let target = (*leaf) ^ 1;
                 self.backprop(path, target);
             }
         }
@@ -393,13 +395,10 @@ impl Universe {
     /// assert!(universe.is_alive((0, 0)));
     /// assert!(!universe.is_alive((1, 1)));
     /// ```
-    pub fn is_alive(&mut self, target: WCoord) -> bool {
-        if let Some(path) = self.search(target) {
-            let (leaf, _) = path[0];
-            leaf == ALIVE
-        } else {
-            false
-        }
+    pub fn is_alive(&mut self, target: Coordinates) -> bool {
+        self.search(target)
+            .and_then(|p| p.first().map(|(n, _)| *n == ALIVE))
+            .unwrap_or(false)
     }
 
     /// Returns a list of coordinates of all currently alive cells.
@@ -415,10 +414,10 @@ impl Universe {
     /// let alive_cells = universe.to_coords();
     /// println!("Found {} alive cells", alive_cells.len());
     /// ```
-    pub fn to_coords(&self) -> LinkedList<WCoord> {
-        let mut points = list![];
-        let span = offset(self.dim());
-        self.to_coords_aux(self.root, (0, 0), &mut points, span);
+    pub fn to_coords(&self) -> impl CellContainer {
+        let mut points = vec![];
+        let offset = offset(self.dim());
+        self.to_coords_aux(self.root, (0, 0), &mut points, offset);
         points
     }
 
@@ -430,15 +429,15 @@ impl Universe {
 
     fn from_coords_aux(
         &mut self,
-        cells: &LinkedList<WCoord>,
-        (c_x, c_y): WCoord,
+        cells: &Vec<Coordinates>,
+        (c_x, c_y): Coordinates,
         level: u32,
         offset: i64
     ) -> NodeId {
         if cells.is_empty() {
             self.zero(level)
         } else if level == 1 {
-            let lookup: HashSet<&WCoord> = cells.iter().collect();
+            let lookup: HashSet<&Coordinates> = cells.iter().collect();
 
             let a_coords = (c_x - 1, c_y);
             let b_coords = (c_x, c_y);
@@ -452,19 +451,17 @@ impl Universe {
 
             self.join(a, b, c, d)
         } else {
-            let mut ne_cells = list![];
-            let mut nw_cells = list![];
-            let mut se_cells = list![];
-            let mut sw_cells = list![];
+            let mut ne_cells = vec![];
+            let mut nw_cells = vec![];
+            let mut se_cells = vec![];
+            let mut sw_cells = vec![];
 
-            for (x, y) in cells.iter() {
-                let p = (*x, *y);
-
+            for &p in cells.iter() {
                 match (p.0 >= c_x, p.1 >= c_y) {
-                    (true, true)   => ne_cells.push_back(p),
-                    (true, false)  => se_cells.push_back(p),
-                    (false, true)  => nw_cells.push_back(p),
-                    (false, false) => sw_cells.push_back(p)
+                    (true, true)   => ne_cells.push(p),
+                    (true, false)  => se_cells.push(p),
+                    (false, true)  => nw_cells.push(p),
+                    (false, false) => sw_cells.push(p)
                 }
             }
 
@@ -529,11 +526,7 @@ impl Universe {
             outer += self.nodes[id].n as u8;
         }
 
-        if (self.nodes[e].n == 1 && self.s.contains(&outer)) || self.b.contains(&outer) {
-            ALIVE
-        } else {
-            DEAD
-        }
+        ((self.nodes[e].n == 1 && self.s.contains(&outer)) || self.b.contains(&outer)) as NodeId
     }
 
     fn life_4x4(&mut self, m: NodeId) -> NodeId {
@@ -660,29 +653,29 @@ impl Universe {
         let Node { a, b, c, d, .. } = self.nodes[parent];
 
         match q {
-            Quadrant::NW => self.join(target, b, c, d),
-            Quadrant::NE => self.join(a, target, c, d),
-            Quadrant::SW => self.join(a, b, target, d),
-            Quadrant::SE => self.join(a, b, c, target)
+            Quadrant::A => self.join(target, b, c, d),
+            Quadrant::B => self.join(a, target, c, d),
+            Quadrant::C => self.join(a, b, target, d),
+            Quadrant::D => self.join(a, b, c, target)
         }
     } 
 
-    fn search(&self, target: WCoord) -> Option<Path> {
-        if in_limit(target, self.dim()) {
+    fn search(&self, target: Coordinates) -> Option<Path> {
+        let k = self.dim();
+
+        in_limit(target, k).then(|| {
             let mut path = vec![];
-            self.search_aux(self.root, Quadrant::SW, target, (0, 0), &mut path, offset(self.dim()));
-            Some(path)
-        } else {
-            None
-        }
+            self.search_aux(self.root, Quadrant::A, target, (0, 0), &mut path, offset(k));
+            path
+        }) 
     }
 
     fn search_aux(
         &self,
         current: NodeId,
         quadrant: Quadrant,
-        target: WCoord,
-        (c_x, c_y): WCoord,
+        target: Coordinates,
+        (c_x, c_y): Coordinates,
         path: &mut Path,
         offset: i64
     ) {
@@ -694,10 +687,10 @@ impl Universe {
             let (x, y) = target;
 
             match (x >= c_x, y >= c_y) {
-                (true, true)   => self.search_aux(c_node.b, Quadrant::NE, target, (c_x + offset, c_y + offset), path, new_offset),
-                (true, false)  => self.search_aux(c_node.d, Quadrant::SE, target, (c_x + offset, c_y - offset), path, new_offset),
-                (false, true)  => self.search_aux(c_node.a, Quadrant::NW, target, (c_x - offset, c_y + offset), path, new_offset),
-                (false, false) => self.search_aux(c_node.c, Quadrant::SW, target, (c_x - offset, c_y - offset), path, new_offset)
+                (true, true)   => self.search_aux(c_node.b, Quadrant::B, target, (c_x + offset, c_y + offset), path, new_offset),
+                (true, false)  => self.search_aux(c_node.d, Quadrant::D, target, (c_x + offset, c_y - offset), path, new_offset),
+                (false, true)  => self.search_aux(c_node.a, Quadrant::A, target, (c_x - offset, c_y + offset), path, new_offset),
+                (false, false) => self.search_aux(c_node.c, Quadrant::C, target, (c_x - offset, c_y - offset), path, new_offset)
             }
         }
 
@@ -707,36 +700,36 @@ impl Universe {
     fn to_coords_aux(
         &self,
         root: NodeId,
-        (c_x, c_y): WCoord,
-        points: &mut LinkedList<WCoord>,
+        (c_x, c_y): Coordinates,
+        points: &mut Vec<Coordinates>,
         span: i64
     ) {
-        let r_node= &self.nodes[root];
-        let level = r_node.k;
+        let root_node= &self.nodes[root];
+        let level = root_node.k;
 
-        if r_node.n > 0 {
+        if root_node.n > 0 {
             if level == 1 {
-                if r_node.a == ALIVE {
-                    points.push_back((c_x - 1, c_y));
+                if root_node.a == ALIVE {
+                    points.push((c_x - 1, c_y));
                 }
 
-                if r_node.b == ALIVE {
-                    points.push_back((c_x, c_y));
+                if root_node.b == ALIVE {
+                    points.push((c_x, c_y));
                 }
 
-                if r_node.c == ALIVE {
-                    points.push_back((c_x - 1, c_y - 1));
+                if root_node.c == ALIVE {
+                    points.push((c_x - 1, c_y - 1));
                 }
 
-                if r_node.d == ALIVE {
-                    points.push_back((c_x, c_y - 1));
+                if root_node.d == ALIVE {
+                    points.push((c_x, c_y - 1));
                 }
             } else {
                 let new_span = span / 2;
-                self.to_coords_aux(r_node.a, (c_x - span, c_y + span), points, new_span);
-                self.to_coords_aux(r_node.b, (c_x + span, c_y + span), points, new_span);
-                self.to_coords_aux(r_node.c, (c_x - span, c_y - span), points, new_span);
-                self.to_coords_aux(r_node.d, (c_x + span, c_y - span), points, new_span);
+                self.to_coords_aux(root_node.a, (c_x - span, c_y + span), points, new_span);
+                self.to_coords_aux(root_node.b, (c_x + span, c_y + span), points, new_span);
+                self.to_coords_aux(root_node.c, (c_x - span, c_y - span), points, new_span);
+                self.to_coords_aux(root_node.d, (c_x + span, c_y - span), points, new_span);
             }
         }
     }
