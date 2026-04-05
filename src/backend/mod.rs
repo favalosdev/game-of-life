@@ -663,8 +663,7 @@ impl Universe {
 
         in_limit(target, k).then(|| {
             let mut path = vec![];
-            let offset = offset(k);
-            self.search_aux(self.root, Quadrant::A, target, (0, 0), &mut path, &offset);
+            self.search_aux(self.root, Quadrant::A, target, (0, 0), &mut path, offset(k));
             path
         }) 
     }
@@ -676,7 +675,7 @@ impl Universe {
         target: Coordinates,
         (c_x, c_y): Coordinates,
         path: &mut Path,
-        offset: &i64
+        offset: i64
     ) {
         let c_node = &self.nodes[current];
         let level = c_node.k;
@@ -686,10 +685,10 @@ impl Universe {
             let (x, y) = target;
 
             match (x >= c_x, y >= c_y) {
-                (true, true)   => self.search_aux(c_node.b, Quadrant::B, target, (c_x + offset, c_y + offset), path, &new_offset),
-                (true, false)  => self.search_aux(c_node.d, Quadrant::D, target, (c_x + offset, c_y - offset), path, &new_offset),
-                (false, true)  => self.search_aux(c_node.a, Quadrant::A, target, (c_x - offset, c_y + offset), path, &new_offset),
-                (false, false) => self.search_aux(c_node.c, Quadrant::C, target, (c_x - offset, c_y - offset), path, &new_offset)
+                (true, true)   => self.search_aux(c_node.b, Quadrant::B, target, (c_x + offset, c_y + offset), path, new_offset),
+                (true, false)  => self.search_aux(c_node.d, Quadrant::D, target, (c_x + offset, c_y - offset), path, new_offset),
+                (false, true)  => self.search_aux(c_node.a, Quadrant::A, target, (c_x - offset, c_y + offset), path, new_offset),
+                (false, false) => self.search_aux(c_node.c, Quadrant::C, target, (c_x - offset, c_y - offset), path, new_offset)
             }
         }
 
