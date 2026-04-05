@@ -7,7 +7,7 @@ use trait_aliases::trait_aliases;
 
 pub mod test;
 
-const ARENA_SIZE: usize = 1_000_000; // Unreasonable estimate
+const ARENA_SIZE: usize = 1_000_000; // Reasonable estimate
 
 #[derive(Debug)]
 struct Node {
