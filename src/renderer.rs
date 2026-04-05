@@ -12,12 +12,11 @@ use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 use sdl2::ttf::Sdl2TtfContext;
 
-use crate::backend::{Coordinates, RefCellContainer, Universe};
+use crate::backend::{Coordinates, Universe};
 use crate::config::*;
 use crate::history::History;
 use crate::save_pattern;
 use crate::camera::Camera;
-use crate::backend::CellContainer;
 
 // Stolen macros to handle annoying Rects
 macro_rules! rect(
@@ -125,7 +124,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_squares<'a, T>(&mut self, cells: &'a T) -> Result<(), Box<dyn std::error::Error>> where T: CellContainer, &'a T: RefCellContainer<'a> {
+    fn draw_squares(&mut self, cells: &Vec<Coordinates>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(CELL_COLOR);
 
         for (x, y) in cells.into_iter() {
