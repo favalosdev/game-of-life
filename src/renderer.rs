@@ -276,7 +276,6 @@ impl Renderer {
                         if !self.is_running && !self.frac_render {
                             self.universe.toggle(self.mouse_coords);
                             curr = self.universe.state();
-                            history.unwind();
                             history.enqueue(curr);
                         }
                     },
