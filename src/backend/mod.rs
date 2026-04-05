@@ -413,7 +413,7 @@ impl Universe {
     /// let alive_cells = universe.to_coords();
     /// println!("Found {} alive cells", alive_cells.len());
     /// ```
-    pub fn to_coords<T>(&self) -> impl CellContainer where T: CellContainer {
+    pub fn to_coords(&self) -> impl CellContainer {
         let mut points = vec![];
         let offset = offset(self.dim());
         self.to_coords_aux(self.root, (0, 0), &mut points, offset);

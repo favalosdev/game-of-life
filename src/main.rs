@@ -61,7 +61,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             universe.advance(gens);
         }
 
-        let cells = universe.to_coords::<Vec<_>>().into_iter().collect();
+        let cells = universe.to_coords().into_iter().collect();
 
         save_pattern(
             &cells,

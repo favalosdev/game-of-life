@@ -61,7 +61,8 @@ mod tests {
         let mut u = Universe::new();
         u.init(TEST_DIM);
         assert_eq!(u.population(), 0);
-        assert!(u.to_coords::<Vec<_>>().into_iter().collect::<Vec<_>>().is_empty());
+        let cells = u.to_coords().into_iter().collect::<Vec<_>>();
+        assert!(cells.is_empty());
     }
 
     #[test]
@@ -147,7 +148,7 @@ mod tests {
     fn from_coords_to_coords_roundtrip() {
         let input = [(0, 0), (1, 0), (0, 1), (1, 1)];
         let u = make_universe(&input);
-        let output: Vec<Coordinates> = u.to_coords::<Vec<_>>().into_iter().collect();
+        let output = u.to_coords().into_iter().collect::<Vec<_>>();
         assert_eq!(output.len(), input.len());
         for c in &input {
             assert!(output.contains(c));
@@ -164,7 +165,7 @@ mod tests {
     fn to_coords_is_empty_for_dead_universe() {
         let mut u = Universe::new();
         u.init(TEST_DIM);
-        let output: Vec<Coordinates> = u.to_coords::<Vec<_>>().into_iter().collect();
+        let output = u.to_coords().into_iter().collect::<Vec<_>>();
         assert!(output.is_empty());
     }
 

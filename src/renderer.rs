@@ -187,7 +187,7 @@ impl Renderer {
 
         let mut last = self.universe.state();
         let mut curr = last;
-        let mut coords = self.universe.to_coords::<Vec<Coordinates>>().into_iter().collect();
+        let mut coords = self.universe.to_coords().into_iter().collect();
 
         'running: loop {
             let now = Instant::now();
@@ -198,7 +198,7 @@ impl Renderer {
                 
                 if curr != last {
                     last = curr;
-                    coords = self.universe.to_coords::<Vec<Coordinates>>().into_iter().collect();
+                    coords = self.universe.to_coords().into_iter().collect();
 
                     if let Err(e) = self.draw_all(&coords) {
                         eprintln!("Drawing error: {}", e);
