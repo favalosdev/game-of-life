@@ -13,10 +13,10 @@ const ARENA_SIZE: usize = 1_000_000; // Unreasonable estimate
 struct Node {
     n: usize, // Number of alive cells within the node
     k: u32, // Size of the quadtree (2**k x 2**k)
-    a: NodeId,
-    b: NodeId,
-    c: NodeId,
-    d: NodeId
+    a: NodeId, // Northwestern quadrant
+    b: NodeId, // Northeastern quadrant
+    c: NodeId, // Southwestern quadrant
+    d: NodeId // Southeastern quadrant
 }
 
 /// Unique identifier type for a node in the Game of Life universe.
@@ -27,10 +27,10 @@ pub type NodeId = usize;
 
 #[derive(Debug, Clone, Copy)]
 enum Quadrant {
-    NW,
-    NE,
-    SW,
-    SE
+    A, // Northwestern quadrant
+    B, // Northeastern quadrant
+    C, // Southwestern quadrant
+    D // Southeastern quadrant
 }
 
 type Path = Vec<(NodeId, Quadrant)>;
@@ -454,9 +454,7 @@ impl Universe {
             let mut se_cells = vec![];
             let mut sw_cells = vec![];
 
-            for (x, y) in cells.iter() {
-                let p = (*x, *y);
-
+            for &p in cells.iter() {
                 match (p.0 >= c_x, p.1 >= c_y) {
                     (true, true)   => ne_cells.push(p),
                     (true, false)  => se_cells.push(p),
@@ -653,10 +651,10 @@ impl Universe {
         let Node { a, b, c, d, .. } = self.nodes[parent];
 
         match q {
-            Quadrant::NW => self.join(target, b, c, d),
-            Quadrant::NE => self.join(a, target, c, d),
-            Quadrant::SW => self.join(a, b, target, d),
-            Quadrant::SE => self.join(a, b, c, target)
+            Quadrant::A => self.join(target, b, c, d),
+            Quadrant::B => self.join(a, target, c, d),
+            Quadrant::C => self.join(a, b, target, d),
+            Quadrant::D => self.join(a, b, c, target)
         }
     } 
 
@@ -666,7 +664,7 @@ impl Universe {
         in_limit(target, k).then(|| {
             let mut path = vec![];
             let offset = offset(k);
-            self.search_aux(self.root, Quadrant::SW, target, (0, 0), &mut path, &offset);
+            self.search_aux(self.root, Quadrant::A, target, (0, 0), &mut path, &offset);
             path
         }) 
     }
@@ -688,10 +686,10 @@ impl Universe {
             let (x, y) = target;
 
             match (x >= c_x, y >= c_y) {
-                (true, true)   => self.search_aux(c_node.b, Quadrant::NE, target, (c_x + offset, c_y + offset), path, &new_offset),
-                (true, false)  => self.search_aux(c_node.d, Quadrant::SE, target, (c_x + offset, c_y - offset), path, &new_offset),
-                (false, true)  => self.search_aux(c_node.a, Quadrant::NW, target, (c_x - offset, c_y + offset), path, &new_offset),
-                (false, false) => self.search_aux(c_node.c, Quadrant::SW, target, (c_x - offset, c_y - offset), path, &new_offset)
+                (true, true)   => self.search_aux(c_node.b, Quadrant::B, target, (c_x + offset, c_y + offset), path, &new_offset),
+                (true, false)  => self.search_aux(c_node.d, Quadrant::D, target, (c_x + offset, c_y - offset), path, &new_offset),
+                (false, true)  => self.search_aux(c_node.a, Quadrant::A, target, (c_x - offset, c_y + offset), path, &new_offset),
+                (false, false) => self.search_aux(c_node.c, Quadrant::C, target, (c_x - offset, c_y - offset), path, &new_offset)
             }
         }
 

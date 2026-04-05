@@ -1,47 +1,34 @@
 use std::collections::VecDeque;
 use crate::backend::NodeId;
 
-const BUFFER_SIZE: usize = 1000;
+const BUFFER_SIZE: usize = 15;
 
 pub struct History {
-    tape: VecDeque<NodeId>,
-    pointer: usize
+    tape: VecDeque<NodeId>
 }
 
 impl History {
-    pub fn new() -> Self {
-        Self {
-            tape: VecDeque::with_capacity(BUFFER_SIZE),
-            pointer: 0
-        }
-    }
-
-    pub fn forward(&mut self) {
-        if self.pointer < self.tape.len() - 1 {
-            self.pointer += 1;
-        }
+    pub fn new(init_state: NodeId) -> Self {
+        let mut tape: VecDeque<NodeId> = VecDeque::with_capacity(BUFFER_SIZE);
+        tape.push_front(init_state);
+        Self { tape }
     }
 
     pub fn unwind(&mut self) {
-        if self.pointer > 0 {
-            self.pointer -= 1;
+        if self.tape.len() > 1 {
+            self.tape.pop_back();
         }
     }
 
-    pub fn push(&mut self, state: NodeId) {
-        if ((self.tape.len() + 1) % BUFFER_SIZE) == 0 {
+    pub fn enqueue(&mut self, state: NodeId) {
+        if self.tape.len() % BUFFER_SIZE == 0 {
             self.tape.pop_front();
-            self.pointer -= 1;
         }
         
         self.tape.push_back(state);
     }
 
-    pub fn flush(&mut self) {
-        self.tape.truncate(self.pointer + 1);
-    }
-
     pub fn state(&self) -> NodeId {
-        self.tape[self.pointer]
+        self.tape[self.tape.len() - 1]
     }
 }

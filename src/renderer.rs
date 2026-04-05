@@ -37,7 +37,6 @@ pub struct Renderer {
     // UI/UX variables
     camera: Camera,
     frac_render: bool,
-    history: History,
     is_running: bool,
     show_grid: bool,
     mouse_coords: Coordinates
@@ -80,7 +79,6 @@ impl Renderer {
             // UI/UX variables
             camera: Camera::new(),
             frac_render: false,
-            history: History::new(),
             is_running: true,
             show_grid: false,
             mouse_coords: (0, 0)
@@ -127,8 +125,8 @@ impl Renderer {
     fn draw_squares(&mut self, cells: &Vec<Coordinates>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(CELL_COLOR);
 
-        for (x, y) in cells.into_iter() {
-            let to_draw = self.get_rect((*x, *y));
+        for &p in cells.into_iter() {
+            let to_draw = self.get_rect(p);
             self.canvas.fill_rect(to_draw)?;
         }
 
@@ -187,27 +185,30 @@ impl Renderer {
         let mut last = self.universe.state();
         let mut curr = last;
         let mut coords = self.universe.to_coords().into_iter().collect();
+        let mut history = History::new(curr);
 
         'running: loop {
             let now = Instant::now();
 
             if now.duration_since(last_game_tick) >= game_interval {
                 last_game_tick = now;
-                self.history.push(curr);
                 
                 if curr != last {
                     last = curr;
                     coords = self.universe.to_coords().into_iter().collect();
+                }
 
-                    if let Err(e) = self.draw_all(&coords) {
-                        eprintln!("Drawing error: {}", e);
-                        continue;
-                    }
+                assert_eq!(history.state(), self.universe.state());
+
+                if let Err(e) = self.draw_all(&coords) {
+                    eprintln!("Drawing error: {}", e);
+                    continue;
                 }
 
                 if self.is_running {
                     advance(&mut self.universe, self.is_hash_life, self.step);
                     curr = self.universe.state();
+                    history.enqueue(curr);
                 }
             }
 
@@ -260,15 +261,12 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
                         self.is_running = !self.is_running;
-
-                        // Game was resumed
-                        if !self.is_running {
-                            self.history.flush()
-                        }
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if !self.is_running {
                             advance(&mut self.universe, self.is_hash_life, self.step);
+                            curr = self.universe.state();
+                            history.enqueue(curr);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
@@ -277,7 +275,9 @@ impl Renderer {
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                         if !self.is_running && !self.frac_render {
                             self.universe.toggle(self.mouse_coords);
-                            self.history.flush();
+                            curr = self.universe.state();
+                            history.unwind();
+                            history.enqueue(curr);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
@@ -294,14 +294,9 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::J), .. } => {
                         if !self.is_running {
-                            self.history.forward();
-                            self.universe.set_state(self.history.state());
-                        }
-                    },
-                    Event::KeyDown { scancode: Some(Scancode::K), .. } => {
-                        if !self.is_running {
-                            self.history.unwind();
-                            self.universe.set_state(self.history.state());
+                            history.unwind();
+                            self.universe.set_state(history.state());
+                            curr = self.universe.state();
                         }
                     },
                     _ => {}
