@@ -32,7 +32,7 @@
 
 mod tests {
     use std::collections::LinkedList;
-    use crate::backend::{Coordinates, Universe};
+    use crate::backend::Universe;
 
     const TEST_DIM: u32 = 5;
 
