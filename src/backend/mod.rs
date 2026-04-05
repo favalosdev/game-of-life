@@ -527,11 +527,7 @@ impl Universe {
             outer += self.nodes[id].n as u8;
         }
 
-        if (self.nodes[e].n == 1 && self.s.contains(&outer)) || self.b.contains(&outer) {
-            ALIVE
-        } else {
-            DEAD
-        }
+        ((self.nodes[e].n == 1 && self.s.contains(&outer)) || self.b.contains(&outer)) as NodeId
     }
 
     fn life_4x4(&mut self, m: NodeId) -> NodeId {
