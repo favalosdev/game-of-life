@@ -270,8 +270,10 @@ impl Universe {
     /// 
     /// universe.from_coords(cells); // Creates a block pattern
     /// ```
-    pub fn from_coords<'a, T>(&mut self, cells: &'a T) where T: CellContainer, &'a T: RefCellContainer<'a> {
-        self.root = self.from_coords_aux(&(cells.into_iter().cloned().collect()), (0, 0), self.dim(), offset(self.dim()))
+    pub fn from_coords<'a, T>(&mut self, cells: &'a T) where &'a T: RefCellContainer<'a> {
+        let k = self.dim();
+        let coords = cells.into_iter().cloned().collect::<Vec<_>>();
+        self.root = self.from_coords_aux(&coords, (0, 0), k, offset(k))
     }
 
     /// Returns a unique identifier for the current universe state.
