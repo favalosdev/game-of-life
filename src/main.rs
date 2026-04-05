@@ -12,8 +12,7 @@ mod history;
 use backend::Universe;
 use renderer::Renderer;
 use rle::save_pattern;
-
-use crate::config::UNIVERSE_DIM;
+use config::UNIVERSE_DIM;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -62,8 +61,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             universe.advance(gens);
         }
 
+        let cells = universe.to_coords::<Vec<_>>().into_iter().collect();
+
         save_pattern(
-            &universe.to_coords(),
+            &cells,
             Some(&output),
             &universe.b(),
             &universe.s()

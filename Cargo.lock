@@ -208,6 +208,7 @@ dependencies = [
  "literal",
  "rustc-hash",
  "sdl2",
+ "trait-aliases",
 ]
 
 [[package]]
@@ -460,6 +461,17 @@ name = "thiserror-impl"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
+]
+
+[[package]]
+name = "trait-aliases"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a694caba768973e7e32844c5242b27b1252b23c314a64c5c7a5418bf1b9003a"
 dependencies = [
  "proc-macro2",
  "quote",

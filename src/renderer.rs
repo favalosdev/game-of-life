@@ -1,8 +1,5 @@
 use std::path::Path;
-use std::collections::LinkedList;
 use std::time::{Duration, Instant};
-
-use literal::list;
 
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
@@ -15,10 +12,12 @@ use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 use sdl2::ttf::Sdl2TtfContext;
 
-use crate::backend::{Universe, WCoord, NodeId};
+use crate::backend::{Coordinates, RefCellContainer, Universe};
 use crate::config::*;
+use crate::history::History;
 use crate::save_pattern;
 use crate::camera::Camera;
+use crate::backend::CellContainer;
 
 // Stolen macros to handle annoying Rects
 macro_rules! rect(
@@ -26,6 +25,7 @@ macro_rules! rect(
         Rect::new($x as i32, $y as i32, $w as u32, $h as u32)
     )
 );
+
 pub struct Renderer {
     universe: Universe,
     is_hash_life: bool,
@@ -38,10 +38,19 @@ pub struct Renderer {
     // UI/UX variables
     camera: Camera,
     frac_render: bool,
-    history: LinkedList<NodeId>,
-    is_paused: bool,
+    history: History,
+    is_running: bool,
     show_grid: bool,
-    mouse_coords: WCoord
+    mouse_coords: Coordinates
+}
+
+// Helper function
+fn advance(u: &mut Universe, is_hash_life: bool, step: u64) {
+    if is_hash_life {
+        u.hash_life();
+    } else {
+        u.advance(step);
+    }
 }
 
 impl Renderer {
@@ -72,8 +81,8 @@ impl Renderer {
             // UI/UX variables
             camera: Camera::new(),
             frac_render: false,
-            history: list![],
-            is_paused: true,
+            history: History::new(),
+            is_running: true,
             show_grid: false,
             mouse_coords: (0, 0)
         };
@@ -81,7 +90,7 @@ impl Renderer {
         Ok(instance)
     }
 
-    fn get_rect(&self, point: WCoord) -> Rect {
+    fn get_rect(&self, point: Coordinates) -> Rect {
         let (xo_s, yo_s) = self.camera.from_world_coords(point);
         let (xf_s, yf_s) = self.camera.from_world_coords((point.0 + 1, point.1 + 1));
 
@@ -97,8 +106,6 @@ impl Renderer {
         let pivot = self.get_rect((0, 0));
         let square_width = pivot.width() as i32;
         let square_height = pivot.height() as i32;
-
-        // Works even if (0, 0) is off-screen
         let mut x = pivot.x().rem_euclid(square_width);
         let mut y = pivot.y().rem_euclid(square_height);
 
@@ -118,10 +125,10 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_squares(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_squares<'a, T>(&mut self, cells: &'a T) -> Result<(), Box<dyn std::error::Error>> where T: CellContainer, &'a T: RefCellContainer<'a> {
         self.canvas.set_draw_color(CELL_COLOR);
 
-        for (x, y) in cells.iter() {
+        for (x, y) in cells.into_iter() {
             let to_draw = self.get_rect((*x, *y));
             self.canvas.fill_rect(to_draw)?;
         }
@@ -153,7 +160,7 @@ impl Renderer {
         self.canvas.copy(&texture, None, Some(target))?;
 
         // Dirty-ass solution
-        let text = if self.is_paused { "--PAUSED--" } else { "  LIVE  " };
+        let text = if self.is_running { "  LIVE  " } else { "--PAUSED--" };
         let surface = font.render(&text).blended(TEXT_COLOR)?;
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width, height, .. } = texture.query();
@@ -164,7 +171,7 @@ impl Renderer {
         Ok(())
     }
 
-    fn draw_all(&mut self, cells: &LinkedList<WCoord>) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_all(&mut self, cells: &Vec<Coordinates>) -> Result<(), Box<dyn std::error::Error>> {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells)?;
@@ -179,35 +186,29 @@ impl Renderer {
         let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
         let mut last = self.universe.state();
-        let mut coords = self.universe.to_coords();
-
-        // Initial render
-        self.draw_all(&coords)?;
+        let mut curr = last;
+        let mut coords = self.universe.to_coords::<Vec<Coordinates>>().into_iter().collect();
 
         'running: loop {
             let now = Instant::now();
 
             if now.duration_since(last_game_tick) >= game_interval {
                 last_game_tick = now;
-
-                let curr = self.universe.state();
-
-                if last != self.universe.state() {
-                    coords = self.universe.to_coords();
+                self.history.push(curr);
+                
+                if curr != last {
                     last = curr;
-                }
+                    coords = self.universe.to_coords::<Vec<Coordinates>>().into_iter().collect();
 
-                if let Err(e) = self.draw_all(&coords) {
-                    eprintln!("Drawing error: {}", e);
-                    continue;
-                }
-
-                if !self.is_paused {
-                    if self.is_hash_life {
-                        self.universe.hash_life();
-                    } else {
-                        self.universe.advance(self.step);
+                    if let Err(e) = self.draw_all(&coords) {
+                        eprintln!("Drawing error: {}", e);
+                        continue;
                     }
+                }
+
+                if self.is_running {
+                    advance(&mut self.universe, self.is_hash_life, self.step);
+                    curr = self.universe.state();
                 }
             }
 
@@ -259,27 +260,29 @@ impl Renderer {
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::P), .. } => {
-                        self.is_paused = !self.is_paused;
+                        self.is_running = !self.is_running;
+
+                        // Game was resumed
+                        if !self.is_running {
+                            self.history.flush()
+                        }
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
-                        if self.is_paused {
-                            if self.is_hash_life {
-                                self.universe.hash_life();
-                            } else {
-                                self.universe.advance(self.step);
-                            }
+                        if !self.is_running {
+                            advance(&mut self.universe, self.is_hash_life, self.step);
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
                         self.show_grid = !self.show_grid;
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
-                        if self.is_paused && !self.frac_render {
+                        if !self.is_running && !self.frac_render {
                             self.universe.toggle(self.mouse_coords);
+                            self.history.flush();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                        if self.is_paused && !coords.is_empty() {
+                        if !self.is_running && !coords.is_empty() {
                             if let Err(e) = save_pattern(
                                 &coords,
                                 output_path,
@@ -291,8 +294,16 @@ impl Renderer {
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::J), .. } => {
+                        if !self.is_running {
+                            self.history.forward();
+                            self.universe.set_state(self.history.state());
+                        }
                     },
                     Event::KeyDown { scancode: Some(Scancode::K), .. } => {
+                        if !self.is_running {
+                            self.history.unwind();
+                            self.universe.set_state(self.history.state());
+                        }
                     },
                     _ => {}
                 }
