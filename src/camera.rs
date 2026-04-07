@@ -1,5 +1,5 @@
 use crate::config::DEFAULT_ZOOM;
-use crate::backend::Coordinates;
+use golback::universe::Coordinates;
 
 pub struct Camera {
     pub zoom: f32,

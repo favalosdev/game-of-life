@@ -1,5 +1,5 @@
 use std::collections::VecDeque;
-use crate::backend::NodeId;
+use golback::universe::NodeId;
 
 pub struct History {
     tape: VecDeque<NodeId>

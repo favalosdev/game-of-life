@@ -12,7 +12,7 @@ use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 use sdl2::ttf::Sdl2TtfContext;
 
-use crate::backend::{Coordinates, Universe};
+use golback::universe::{Coordinates, Universe};
 use crate::config::*;
 use crate::history::History;
 use crate::save_pattern;
