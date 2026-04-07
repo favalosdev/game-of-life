@@ -192,7 +192,7 @@ impl<'a> Renderer<'a> {
         let mut last = self.universe.state();
         let mut curr = last;
         let mut coords = self.universe.to_coords().into_iter().collect();
-        let mut history = History::new(1000, curr);
+        let mut history = History::new(curr);
 
         let (tx, rx) = channel::<WorldEvent>();
 
@@ -213,12 +213,16 @@ impl<'a> Renderer<'a> {
                         history.enqueue(curr);
                     },
                     WorldEvent::Unwind => {
-                        history.unwind();
-                        self.universe.set_state(history.state());
+                        if history.can_unwind() {
+                            history.unwind();
+                            self.universe.set_state(history.state());
+                        }
                     },
                     WorldEvent::Rewind => {
-                        history.rewind();
-                        self.universe.set_state(history.state());
+                        if history.can_rewind() { 
+                            history.rewind();
+                            self.universe.set_state(history.state());
+                        }
                     },
                     WorldEvent::Toggle((x, y)) => {
                         self.universe.toggle((x, y));
