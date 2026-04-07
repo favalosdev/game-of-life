@@ -13,6 +13,8 @@ use sdl2::mouse::{MouseState, MouseButton};
 use sdl2::ttf::Sdl2TtfContext;
 
 use golback::universe::{Coordinates, Universe};
+use std::sync::mpsc::channel;
+
 use crate::config::*;
 use crate::history::History;
 use crate::save_pattern;
@@ -25,7 +27,7 @@ macro_rules! rect(
     )
 );
 
-pub struct Renderer {
+pub struct Renderer<'a> {
     universe: Universe,
     is_hash_life: bool,
     step: u64,
@@ -33,13 +35,21 @@ pub struct Renderer {
     event_pump: EventPump,
     canvas: Canvas<Window>,
     texture_creator: TextureCreator<WindowContext>,
-    ttf_context: Sdl2TtfContext,
+    font: sdl2::ttf::Font<'a, 'static>,
     // UI/UX variables
     camera: Camera,
     frac_render: bool,
     is_running: bool,
     show_grid: bool,
     mouse_coords: Coordinates
+}
+
+#[derive(Debug)]
+enum WorldEvent {
+    Advance,
+    Toggle(Coordinates),
+    Unwind,
+    Rewind
 }
 
 // Helper function
@@ -51,8 +61,8 @@ fn advance(u: &mut Universe, is_hash_life: bool, step: u64) {
     }
 }
 
-impl Renderer {
-    pub fn new(universe: Universe, is_hash_life: bool, step: u64) -> Result<Self, Box<dyn std::error::Error>> {
+impl<'a> Renderer<'a> {
+    pub fn new(universe: Universe, is_hash_life: bool, step: u64, ttf_context: &'a Sdl2TtfContext) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
         let video_subsystem = sdl_context.video()?;
 
@@ -64,8 +74,8 @@ impl Renderer {
 
         let event_pump = sdl_context.event_pump().map_err(|e| format!("Failed to create event pump: {}", e))?;
         let canvas: Canvas<Window> = window.into_canvas().build().map_err(|e| format!("Failed to create canvas: {}", e))?;
-        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
         let texture_creator = canvas.texture_creator();
+        let font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
 
         let instance = Self {
             universe,
@@ -74,8 +84,9 @@ impl Renderer {
             // SDL-2 variables
             event_pump,
             canvas,
-            ttf_context,
             texture_creator,
+            font,
+            // font,
             // UI/UX variables
             camera: Camera::new(),
             frac_render: false,
@@ -135,8 +146,7 @@ impl Renderer {
 
     fn draw_sim_info(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Load a font
-        let mut font = self.ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
-        font.set_style(sdl2::ttf::FontStyle::BOLD);
+        self.font.set_style(sdl2::ttf::FontStyle::BOLD);
 
         let mut text = String::new();
         text.push_str(&format!("gen: {}", self.universe.epochs()));
@@ -149,7 +159,7 @@ impl Renderer {
             text.push_str(&" x: --, y: --");
         }
 
-        let surface = font.render(&text).blended(TEXT_COLOR)?;
+        let surface = self.font.render(&text).blended(TEXT_COLOR)?;
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width, height, .. } = texture.query();
         let padding = 10;
@@ -158,7 +168,7 @@ impl Renderer {
 
         // Dirty-ass solution
         let text = if self.is_running { "  LIVE  " } else { "--PAUSED--" };
-        let surface = font.render(&text).blended(TEXT_COLOR)?;
+        let surface = self.font.render(&text).blended(TEXT_COLOR)?;
         let texture  = self.texture_creator.create_texture_from_surface(&surface)?;
         let TextureQuery { width, height, .. } = texture.query();
         let padding = 10;
@@ -179,27 +189,58 @@ impl Renderer {
     }
 
     pub fn r#loop(&mut self, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
-        let mut last_game_tick = Instant::now();
-        let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
-
         let mut last = self.universe.state();
         let mut curr = last;
         let mut coords = self.universe.to_coords().into_iter().collect();
-        let mut history = History::new(1000, curr);
+        let mut history = History::new(curr);
+
+        let (tx, rx) = channel::<WorldEvent>();
+
+        let mut last_game_tick = Instant::now();
+        let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
 
         'running: loop {
             let now = Instant::now();
 
+            while let Ok(event) = rx.try_recv() {
+                match event {
+                    WorldEvent::Advance => {
+                        if self.is_hash_life {
+                            self.universe.hash_life();
+                        } else {
+                            self.universe.advance(self.step);
+                        }
+                        history.enqueue(curr);
+                    },
+                    WorldEvent::Unwind => {
+                        if history.can_unwind() {
+                            history.unwind();
+                            self.universe.set_state(history.state());
+                        }
+                    },
+                    WorldEvent::Rewind => {
+                        if history.can_rewind() { 
+                            history.rewind();
+                            self.universe.set_state(history.state());
+                        }
+                    },
+                    WorldEvent::Toggle((x, y)) => {
+                        self.universe.toggle((x, y));
+                        history.enqueue(curr);
+                    }
+                }
+            }
+
             if now.duration_since(last_game_tick) >= game_interval {
                 last_game_tick = now;
-                
+
+                curr = self.universe.state();
+
                 if curr != last {
                     last = curr;
                     coords = self.universe.to_coords().into_iter().collect();
                 }
-
-                assert_eq!(history.state(), self.universe.state());
-
+                
                 if let Err(e) = self.draw_all(&coords) {
                     eprintln!("Drawing error: {}", e);
                     continue;
@@ -207,8 +248,7 @@ impl Renderer {
 
                 if self.is_running {
                     advance(&mut self.universe, self.is_hash_life, self.step);
-                    curr = self.universe.state();
-                    history.enqueue(curr);
+                    tx.send(WorldEvent::Advance).unwrap();
                 }
             }
 
@@ -264,9 +304,7 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if !self.is_running {
-                            advance(&mut self.universe, self.is_hash_life, self.step);
-                            curr = self.universe.state();
-                            history.enqueue(curr);
+                            tx.send(WorldEvent::Advance).unwrap();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
@@ -274,13 +312,11 @@ impl Renderer {
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                         if !self.is_running && !self.frac_render {
-                            self.universe.toggle(self.mouse_coords);
-                            curr = self.universe.state();
-                            history.enqueue(curr);
+                            tx.send(WorldEvent::Toggle(self.mouse_coords)).unwrap();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
-                        if !self.is_running && !coords.is_empty() {
+                        if !self.is_running {
                             if let Err(e) = save_pattern(
                                 &coords,
                                 output_path,
@@ -293,9 +329,12 @@ impl Renderer {
                     },
                     Event::KeyDown { scancode: Some(Scancode::J), .. } => {
                         if !self.is_running {
-                            history.unwind();
-                            self.universe.set_state(history.state());
-                            curr = self.universe.state();
+                            tx.send(WorldEvent::Unwind).unwrap();
+                        }
+                    },
+                    Event::KeyDown { scancode: Some(Scancode::K), .. } => {
+                        if !self.is_running {
+                            tx.send(WorldEvent::Rewind).unwrap();
                         }
                     },
                     _ => {}
