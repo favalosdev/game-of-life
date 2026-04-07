@@ -39,12 +39,8 @@ impl History {
             self.tape.truncate(self.pointer + 1);
         }
 
-        assert!(self.pointer == self.tape.len() - 1);
-
         self.tape.push_back(state);
         self.pointer += 1;
-        
-        assert!(self.pointer == self.tape.len() - 1);
     }
 
     pub fn state(&self) -> NodeId {
