@@ -192,7 +192,7 @@ impl<'a> Renderer<'a> {
         let mut last = self.universe.state();
         let mut curr = last;
         let mut coords = self.universe.to_coords().into_iter().collect();
-        let mut history = History::new( curr);
+        let mut history = History::new(curr);
 
         let (tx, rx) = channel::<WorldEvent>();
 
