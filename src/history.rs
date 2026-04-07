@@ -35,7 +35,9 @@ impl History {
             self.tape.truncate(self.pointer + 1);
         }
 
-        if self.tape.len() % self.tape.capacity() == 0 {
+        let n = self.tape.len();
+
+        if n > 0 && n % self.tape.capacity() == 0 {
             self.tape.pop_front();
             self.unwind();
         }
