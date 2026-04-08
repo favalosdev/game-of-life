@@ -27,11 +27,11 @@ impl History {
         self.pointer += 1;
     }
 
-    pub fn can_rewind(&mut self) -> bool {
+    pub fn can_rewind(&self) -> bool {
         (self.tape.len() - 1) - self.pointer >= 1 
     }
 
-    pub fn can_unwind(&mut self) -> bool {
+    pub fn can_unwind(&self) -> bool {
         self.pointer > 0
     }
 
