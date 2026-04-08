@@ -75,7 +75,8 @@ impl<'a> Renderer<'a> {
         let event_pump = sdl_context.event_pump().map_err(|e| format!("Failed to create event pump: {}", e))?;
         let canvas: Canvas<Window> = window.into_canvas().build().map_err(|e| format!("Failed to create canvas: {}", e))?;
         let texture_creator = canvas.texture_creator();
-        let font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
+        let mut font = ttf_context.load_font(Path::new("assets/IBM_Plex_Mono/IBMPlexMono-Regular.ttf"), 20)?;
+        font.set_style(sdl2::ttf::FontStyle::BOLD);
 
         let instance = Self {
             universe,
@@ -146,8 +147,6 @@ impl<'a> Renderer<'a> {
 
     fn draw_sim_info(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Load a font
-        self.font.set_style(sdl2::ttf::FontStyle::BOLD);
-
         let mut text = String::new();
         text.push_str(&format!("gen: {}", self.universe.epochs()));
         text.push_str(&format!(" cells: {}", self.universe.population()));
