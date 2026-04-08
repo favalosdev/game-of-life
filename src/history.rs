@@ -1,6 +1,8 @@
 use std::collections::VecDeque;
 use golback::universe::NodeId;
 
+const CAPACITY: usize = 5000;
+
 pub struct History {
     tape: VecDeque<NodeId>,
     pointer: usize
@@ -8,7 +10,7 @@ pub struct History {
 
 impl History {
     pub fn new(init_state: NodeId) -> Self {
-        let mut tape: VecDeque<NodeId> = VecDeque::new();
+        let mut tape: VecDeque<NodeId> = VecDeque::with_capacity(CAPACITY);
         tape.push_back(init_state);
 
         Self {
@@ -39,12 +41,18 @@ impl History {
             self.tape.truncate(self.pointer + 1);
         }
 
+        let n = self.tape.len();
+
+        if n > 0 && n % CAPACITY == 0 {
+            self.tape.pop_front();
+            self.pointer -= 1;
+        }
+
         self.tape.push_back(state);
         self.pointer += 1;
     }
 
     pub fn state(&self) -> NodeId {
-        assert!(self.pointer < self.tape.len());
         self.tape[self.pointer]
     }
 }
