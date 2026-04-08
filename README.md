@@ -12,7 +12,7 @@ This is an interactive Rust applet for visualizing Conway's Game of Life simulat
 
 - `-i, --input <path>`: File-path of the pattern (in .rle format) to load (required)
 - `-o, --output <path>`: Path where the new pattern is saved to
-- `--hash-life`: Run simulation at full speed by executing Bill Gosper's hashlife algorithm
+- `--hash-life`: Run simulation using Bill Gosper's hashlife algorithm
 - `-t, --interactive`: Run in interactive mode with graphical interface
 - `-g, --gens <number>`: Number of generations to advance (required in non-interactive mode unless using `--hash-life`)
 - `-s, --step <number>`: Number of generations to advance per step in interactive mode (default 1)
@@ -42,8 +42,12 @@ This is an interactive Rust applet for visualizing Conway's Game of Life simulat
 - **A**: Move the camera to the left
 - **S**: Move the camera downwards
 - **D**: Move the camera to the right
-- **I**: Zoom-in
-- **O**: Zoom-out
+- **I**: Zoom in
+- **O**: Zoom out
 - **P**: Pause/unpause the simulation
 - **E**: Advance the game by the specified step size (default 1) generations ahead (only when paused)
 - **G**: Toggle grid display
+- **V**: Save the current pattern to the configured output path (only when paused)
+- **J**: Rewind one step in history (only when paused)
+- **K**: Advance one step in history (only when paused)
+- Left-click: Toggle cell state under the cursor (only when paused and zoom is not fractional)
