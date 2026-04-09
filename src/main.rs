@@ -1,7 +1,5 @@
 extern crate sdl2;
 
-use clap::Parser;
-
 mod config;
 mod renderer;
 mod rle;
@@ -12,6 +10,8 @@ use golback::universe::Universe;
 use renderer::Renderer;
 use rle::save_pattern;
 use config::UNIVERSE_DIM;
+
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
