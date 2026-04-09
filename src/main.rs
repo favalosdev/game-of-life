@@ -18,7 +18,7 @@ use config::UNIVERSE_DIM;
 struct Args {
     // File-path of the pattern (in .rle format) to load
     #[arg(short = 'i', long)]
-    input: String,
+    input: Option<String>,
     // Path where the new pattern is saved to
     #[arg(short = 'o', long)]
     output: Option<String>,
@@ -42,14 +42,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut universe = Universe::new();
     universe.init(UNIVERSE_DIM);
-    universe.load(args.input)?;
 
     if args.interactive {
+        if let Some(input) = args.input {
+            universe.load(input)?;
+        }
+
         let ttf_context = sdl2::ttf::init()?; 
         let mut renderer = Renderer::new(universe, args.hash_life, args.step, &ttf_context)?;
         renderer.r#loop(args.output.as_ref())?;
     } else {
         let output = args.output.ok_or("output parameter required in non-interactive mode")?;
+        let input = args.input.ok_or("Input parameter required in non-interactive mode")?;
+
+        universe.load(input)?;
 
         if args.hash_life {
             let repeat = args.repeat.ok_or("repeat parameter required when running hashlife in interactive mode")?;
