@@ -192,6 +192,30 @@ impl<'a> Renderer<'a> {
         'running: loop {
             let now = Instant::now();
 
+            if now.duration_since(last_game_tick) >= game_interval {
+                last_game_tick = now;
+
+                curr = self.universe.state();
+
+                if curr != last {
+                    last = curr;
+                    coords = self.universe.to_coords().into_iter().collect();
+                }
+                
+                if let Err(e) = self.draw_all(&coords) {
+                    eprintln!("Drawing error: {}", e);
+                    continue;
+                }
+
+                if self.is_running {
+                    tx.send(WorldEvent::Advance).unwrap();
+                }
+            }
+
+            let mouse_state: MouseState = self.event_pump.mouse_state();
+            self.mouse_coords = self.camera.from_screen_coords((mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y()));
+            let zoom_factor = self.camera.zoom.max(1.0) as i32;
+
             while let Ok(event) = rx.try_recv() {
                 match event {
                     WorldEvent::Advance => {
@@ -220,30 +244,6 @@ impl<'a> Renderer<'a> {
                     }
                 }
             }
-
-            if now.duration_since(last_game_tick) >= game_interval {
-                last_game_tick = now;
-
-                curr = self.universe.state();
-
-                if curr != last {
-                    last = curr;
-                    coords = self.universe.to_coords().into_iter().collect();
-                }
-                
-                if let Err(e) = self.draw_all(&coords) {
-                    eprintln!("Drawing error: {}", e);
-                    continue;
-                }
-
-                if self.is_running {
-                    tx.send(WorldEvent::Advance).unwrap();
-                }
-            }
-
-            let mouse_state: MouseState = self.event_pump.mouse_state();
-            self.mouse_coords = self.camera.from_screen_coords((mouse_state.x() - OFFSET_X, OFFSET_Y - mouse_state.y()));
-            let zoom_factor = self.camera.zoom.max(1.0) as i32;
 
             for event in self.event_pump.poll_iter() {
                 match event {
