@@ -52,15 +52,6 @@ enum WorldEvent {
     Rewind
 }
 
-// Helper function
-fn advance(u: &mut Universe, is_hash_life: bool, step: u64) {
-    if is_hash_life {
-        u.hash_life();
-    } else {
-        u.advance(step);
-    }
-}
-
 impl<'a> Renderer<'a> {
     pub fn new(universe: Universe, is_hash_life: bool, step: u64, ttf_context: &'a Sdl2TtfContext) -> Result<Self, Box<dyn std::error::Error>> {
         let sdl_context = sdl2::init()?;
@@ -246,7 +237,6 @@ impl<'a> Renderer<'a> {
                 }
 
                 if self.is_running {
-                    advance(&mut self.universe, self.is_hash_life, self.step);
                     tx.send(WorldEvent::Advance).unwrap();
                 }
             }
@@ -291,6 +281,7 @@ impl<'a> Renderer<'a> {
 
                             if self.camera.zoom == 1.0 {
                                 self.frac_render = true;
+                                self.camera.zoom = 0.99;
                             }
                         } else {
                             self.camera.zoom *= 0.9;
