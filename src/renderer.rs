@@ -58,7 +58,7 @@ impl<'a> Renderer<'a> {
         let video_subsystem = sdl_context.video()?;
 
         let window = video_subsystem
-            .window("Game of Life", WINDOW_WIDTH, WINDOW_HEIGHT)
+            .window("golfront", WINDOW_WIDTH, WINDOW_HEIGHT)
             .position_centered()
             .build()
             .map_err(|e| format!("Failed to build window: {}", e))?;
