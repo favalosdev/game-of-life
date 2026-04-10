@@ -53,9 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         renderer.r#loop(args.output.as_ref())?;
     } else {
         let output = args.output.ok_or("output parameter required in non-interactive mode")?;
-        let input = args.input.ok_or("Input parameter required in non-interactive mode")?;
-
-        universe.load(input)?;
+        universe.load(args.input.ok_or("Input parameter required in non-interactive mode")?)?;
 
         if args.hash_life {
             let repeat = args.repeat.ok_or("repeat parameter required when running hashlife in interactive mode")?;
