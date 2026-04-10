@@ -82,8 +82,8 @@ impl<'a> Renderer<'a> {
             // UI/UX variables
             camera: Camera::new(),
             frac_render: false,
-            is_running: true,
-            show_grid: false,
+            is_running: false,
+            show_grid: true,
             mouse_coords: (0, 0)
         };
 
