@@ -12,7 +12,7 @@ use sdl2::keyboard::{Keycode, Scancode};
 use sdl2::mouse::{MouseState, MouseButton};
 use sdl2::ttf::Sdl2TtfContext;
 
-use golback::universe::{Coordinates, Universe};
+use golback::universe::{Coordinates, Universe, RefCellContainer};
 use std::sync::mpsc::channel;
 
 use crate::config::*;
@@ -125,10 +125,10 @@ impl<'a> Renderer<'a> {
         Ok(())
     }
 
-    fn draw_squares(&mut self, cells: &Vec<Coordinates>) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_squares<'b, T>(&mut self, cells: &'b T) -> Result<(), Box<dyn std::error::Error>> where &'b T: RefCellContainer<'b> {
         self.canvas.set_draw_color(CELL_COLOR);
 
-        for &p in cells.into_iter() {
+        for &p in cells {
             let to_draw = self.get_rect(p);
             self.canvas.fill_rect(to_draw)?;
         }
@@ -168,7 +168,7 @@ impl<'a> Renderer<'a> {
         Ok(())
     }
 
-    fn draw_all(&mut self, cells: &Vec<Coordinates>) -> Result<(), Box<dyn std::error::Error>> {
+    fn draw_all<'b, T>(&mut self, cells: &'b T) -> Result<(), Box<dyn std::error::Error>> where &'b T: RefCellContainer<'b> {
         self.canvas.set_draw_color(Color::RGB(0, 0, 0));
         self.canvas.clear();
         self.draw_squares(cells)?;
