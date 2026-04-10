@@ -45,7 +45,7 @@ pub struct Renderer<'a> {
 }
 
 #[derive(Debug)]
-enum WorldEvent {
+enum CustomEvent {
     Advance,
     Toggle(Coordinates),
     Unwind,
@@ -184,7 +184,7 @@ impl<'a> Renderer<'a> {
         let mut coords = self.universe.to_coords().into_iter().collect();
         let mut history = History::new(curr);
 
-        let (tx, rx) = channel::<WorldEvent>();
+        let (tx, rx) = channel::<CustomEvent>();
 
         let mut last_game_tick = Instant::now();
         let game_interval = Duration::from_nanos(1_000_000_000 / GAME_FREQ);
@@ -208,7 +208,7 @@ impl<'a> Renderer<'a> {
                 }
 
                 if self.is_running {
-                    tx.send(WorldEvent::Advance).unwrap();
+                    tx.send(CustomEvent::Advance).unwrap();
                 }
             }
 
@@ -218,7 +218,7 @@ impl<'a> Renderer<'a> {
 
             while let Ok(event) = rx.try_recv() {
                 match event {
-                    WorldEvent::Advance => {
+                    CustomEvent::Advance => {
                         if self.is_hash_life {
                             self.universe.hash_life();
                         } else {
@@ -226,19 +226,19 @@ impl<'a> Renderer<'a> {
                         }
                         history.enqueue(curr);
                     },
-                    WorldEvent::Unwind => {
+                    CustomEvent::Unwind => {
                         if history.can_unwind() {
                             history.unwind();
                             self.universe.set_state(history.state());
                         }
                     },
-                    WorldEvent::Rewind => {
+                    CustomEvent::Rewind => {
                         if history.can_rewind() { 
                             history.rewind();
                             self.universe.set_state(history.state());
                         }
                     },
-                    WorldEvent::Toggle((x, y)) => {
+                    CustomEvent::Toggle((x, y)) => {
                         self.universe.toggle((x, y));
                         history.enqueue(curr);
                     }
@@ -294,7 +294,7 @@ impl<'a> Renderer<'a> {
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if !self.is_running {
-                            tx.send(WorldEvent::Advance).unwrap();
+                            tx.send(CustomEvent::Advance).unwrap();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
@@ -302,7 +302,7 @@ impl<'a> Renderer<'a> {
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                         if !self.is_running && !self.frac_render {
-                            tx.send(WorldEvent::Toggle(self.mouse_coords)).unwrap();
+                            tx.send(CustomEvent::Toggle(self.mouse_coords)).unwrap();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
@@ -319,12 +319,12 @@ impl<'a> Renderer<'a> {
                     },
                     Event::KeyDown { scancode: Some(Scancode::J), .. } => {
                         if !self.is_running {
-                            tx.send(WorldEvent::Unwind).unwrap();
+                            tx.send(CustomEvent::Unwind).unwrap();
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::K), .. } => {
                         if !self.is_running {
-                            tx.send(WorldEvent::Rewind).unwrap();
+                            tx.send(CustomEvent::Rewind).unwrap();
                         }
                     },
                     _ => {}
