@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
+use std::sync::mpsc::channel;
 
 use sdl2::render::{Canvas, TextureCreator};
 use sdl2::video::{Window, WindowContext};
@@ -13,7 +14,7 @@ use sdl2::mouse::{MouseState, MouseButton};
 use sdl2::ttf::Sdl2TtfContext;
 
 use golback::universe::{Coordinates, Universe, RefCellContainer};
-use std::sync::mpsc::channel;
+
 
 use crate::config::*;
 use crate::history::History;
