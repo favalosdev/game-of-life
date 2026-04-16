@@ -15,7 +15,6 @@ use sdl2::ttf::Sdl2TtfContext;
 
 use golback::universe::{Coordinates, Universe, RefCellContainer};
 
-
 use crate::config::*;
 use crate::history::History;
 use crate::save_pattern;
