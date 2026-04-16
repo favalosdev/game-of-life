@@ -178,7 +178,7 @@ impl<'a> Renderer<'a> {
         Ok(())
     }
 
-    pub fn r#loop(&mut self, output_path: Option<&String>) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn r#loop(&mut self, output_path: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
         let mut last = self.universe.state();
         let mut curr = last;
         let mut coords = self.universe.to_coords().into_iter().collect();
@@ -309,7 +309,7 @@ impl<'a> Renderer<'a> {
                         if !self.is_running {
                             if let Err(e) = save_pattern(
                                 &coords,
-                                output_path,
+                                output_path.as_ref(),
                                 &self.universe.b(),
                                 &self.universe.s()
                             ) {

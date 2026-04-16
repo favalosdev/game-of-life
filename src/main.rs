@@ -50,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let ttf_context = sdl2::ttf::init()?; 
         let mut renderer = Renderer::new(universe, args.hash_life, args.step, &ttf_context)?;
-        renderer.r#loop(args.output.as_ref())?;
+        renderer.r#loop(args.output)?;
     } else {
         let output = args.output.ok_or("output parameter required in non-interactive mode")?;
         universe.load(args.input.ok_or("Input parameter required in non-interactive mode")?)?;
