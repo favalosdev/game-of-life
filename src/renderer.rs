@@ -139,14 +139,14 @@ impl<'a> Renderer<'a> {
     fn draw_sim_info(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         // Load a font
         let mut text = String::new();
-        text.push_str(&format!("gen: {}", self.universe.epochs()));
-        text.push_str(&format!(" cells: {}", self.universe.population()));
+        text.push_str(format!("gen: {}", self.universe.epochs()).as_str());
+        text.push_str(format!(" cells: {}", self.universe.population()).as_str());
 
         if !self.frac_render {
             let (mx, my) = self.mouse_coords;
-            text.push_str(&format!(" x: {:.2}, y: {:.2}", mx, my));
+            text.push_str(format!(" x: {:.2}, y: {:.2}", mx, my).as_str());
         } else {
-            text.push_str(&" x: --, y: --");
+            text.push_str(" x: --, y: --");
         }
 
         let surface = self.font.render(&text).blended(TEXT_COLOR)?;
