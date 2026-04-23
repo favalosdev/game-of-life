@@ -208,7 +208,7 @@ impl<'a> Renderer<'a> {
                 }
 
                 if self.is_running {
-                    tx.send(CustomEvent::Advance).unwrap();
+                    tx.send(CustomEvent::Advance)?;
                 }
             }
 
