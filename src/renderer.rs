@@ -294,7 +294,7 @@ impl<'a> Renderer<'a> {
                     },
                     Event::KeyDown { scancode: Some(Scancode::E), .. } => {
                         if !self.is_running {
-                            tx.send(CustomEvent::Advance).unwrap();
+                            tx.send(CustomEvent::Advance)?;
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::G), .. } => {
@@ -302,7 +302,7 @@ impl<'a> Renderer<'a> {
                     },
                     Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => {
                         if !self.is_running && !self.frac_render {
-                            tx.send(CustomEvent::Toggle(self.mouse_coords)).unwrap();
+                            tx.send(CustomEvent::Toggle(self.mouse_coords))?;
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::V), .. } => {
@@ -319,12 +319,12 @@ impl<'a> Renderer<'a> {
                     },
                     Event::KeyDown { scancode: Some(Scancode::J), .. } => {
                         if !self.is_running {
-                            tx.send(CustomEvent::Unwind).unwrap();
+                            tx.send(CustomEvent::Unwind)?;
                         }
                     },
                     Event::KeyDown { scancode: Some(Scancode::K), .. } => {
                         if !self.is_running {
-                            tx.send(CustomEvent::Rewind).unwrap();
+                            tx.send(CustomEvent::Rewind)?;
                         }
                     },
                     _ => {}
